@@ -1,33 +1,71 @@
 /**
  * GrokBot — frontend application logic
- * Vanilla JS, no framework, no build step.
+ * A clone of xAI's Grok Bot: a team of always-on AI teammates you message
+ * like coworkers. Each Bot is a role-persona conversation backed by the
+ * xAI (or any OpenAI-compatible) API; the "Bot's screen" panel simulates
+ * the cloud-computer activity view.
  */
 (function () {
   'use strict';
 
   // -------------------------------------------------------------------------
-  // Models
+  // Models & presets
   // -------------------------------------------------------------------------
   var MODELS = [
-    { id: 'grok-4.1', name: 'Grok 4.1', desc: 'Latest flagship model' },
-    { id: 'grok-4.1-fast', name: 'Grok 4.1 Fast', desc: 'Fast and efficient' },
-    { id: 'grok-4', name: 'Grok 4', desc: 'Previous flagship' },
-    { id: 'grok-4-fast', name: 'Grok 4 Fast', desc: 'Fast previous generation' },
-    { id: 'grok-3', name: 'Grok 3', desc: 'Grok 3' },
-    { id: 'grok-3-mini', name: 'Grok 3 Mini', desc: 'Lightweight reasoning' },
-    { id: 'grok-2-1212', name: 'Grok 2', desc: 'Legacy' }
+    { id: 'grok-4.1', name: 'Grok 4.1' },
+    { id: 'grok-4.1-fast', name: 'Grok 4.1 Fast' },
+    { id: 'grok-4', name: 'Grok 4' },
+    { id: 'grok-4-fast', name: 'Grok 4 Fast' },
+    { id: 'grok-3', name: 'Grok 3' },
+    { id: 'grok-3-mini', name: 'Grok 3 Mini' },
+    { id: 'grok-2-1212', name: 'Grok 2' }
+  ];
+
+  var COLORS = ['#8b5cf6', '#f97316', '#22c55e', '#3b82f6', '#ec4899', '#14b8a6', '#eab308', '#f43f5e'];
+
+  var PRESETS = [
+    {
+      name: 'Chief of Staff', color: '#8b5cf6',
+      role: 'keeps everything moving — plans the day, coordinates the other Bots, unblocks anything stuck',
+      greeting: "Morning. Everything's on track. Want me to line up your day?"
+    },
+    {
+      name: 'Inbox Manager', color: '#f97316',
+      role: 'works the inbox to zero, drafts every reply, parks anything that needs your review',
+      greeting: 'inbox at zero — 5 drafts parked for tomorrow. anything urgent?'
+    },
+    {
+      name: 'Talent Scout', color: '#22c55e',
+      role: 'sources and ranks candidates, keeps the pipeline table current',
+      greeting: '3 strong candidates surfaced for the DevRel role. want the shortlist?'
+    },
+    {
+      name: 'Expense Manager', color: '#3b82f6',
+      role: 'reconciles expenses, chases receipts, flags anomalies',
+      greeting: 'Q3 expenses reconciled. 2 receipts need your approval.'
+    },
+    {
+      name: 'Account Manager', color: '#ec4899',
+      role: 'checks in on every account, watches renewals and risks',
+      greeting: 'checked in on all accounts — 1 renewal at risk. details?'
+    }
+  ];
+
+  var NEW_BOT_GREETING = 'Hey! What do you want me around for? Anything concrete, or more of a general sidekick?';
+
+  var WORK_STEPS = [
+    'Opening browser…', 'Signing in…', 'Reading the queue…', 'Working the inbox…',
+    'Cross-checking details…', 'Pulling the numbers…', 'Drafting updates…',
+    'Saving files…', 'Double-checking results…', 'Wrapping up…'
   ];
 
   var ICONS = {
     copy: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="12" height="12" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>',
-    up: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 10v12"/><path d="M15 5.88L14 10h5.83a2 2 0 0 1 1.92 2.56l-2.33 8A2 2 0 0 1 17.5 22H4a2 2 0 0 1-2-2v-8a2 2 0 0 1 2-2h2.76a2 2 0 0 0 1.79-1.11L12 2a3.13 3.13 0 0 1 3 3.88z"/></svg>',
-    down: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 14V2"/><path d="M9 18.12L10 14H4.17a2 2 0 0 1-1.92-2.56l2.33-8A2 2 0 0 1 6.5 2H20a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2h-2.76a2 2 0 0 0-1.79 1.11L12 22a3.13 3.13 0 0 1-3-3.88z"/></svg>',
     refresh: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10"/><path d="M20.49 15a9 9 0 0 1-14.85 3.36L1 14"/></svg>',
     pencil: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 3a2.83 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"/></svg>',
-    trash: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>',
+    trash: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/></svg>',
     x: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>',
-    check: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>',
-    chevR: '<svg class="th-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 6 15 12 9 18"/></svg>'
+    check: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>'
   };
 
   // -------------------------------------------------------------------------
@@ -36,21 +74,39 @@
   function load(k, d) {
     try { var v = localStorage.getItem(k); return v ? JSON.parse(v) : d; } catch (e) { return d; }
   }
-  var chats = load('gb:chats', []);
+  function persist(k, v) {
+    try { localStorage.setItem(k, JSON.stringify(v)); }
+    catch (e) { toast('Browser storage is full — state may not persist'); }
+  }
+
   var settings = Object.assign(
-    { apiKey: '', baseUrl: '', model: 'grok-4.1', theme: 'dark', systemPrompt: '', temperature: '' },
+    { apiKey: '', baseUrl: '', model: 'grok-4.1', theme: 'dark', temperature: '' },
     load('gb:settings', {})
   );
-  var currentId = null;
-  var controller = null;       // AbortController for the active stream
+  var bots = load('gb:bots', null);
+  if (!bots) {
+    bots = PRESETS.map(function (p, i) {
+      return {
+        id: 'preset-' + i,
+        name: p.name,
+        role: p.role,
+        color: p.color,
+        messages: [{ role: 'assistant', content: p.greeting, time: Date.now() - (PRESETS.length - i) * 3600e3 }]
+      };
+    });
+    persist('gb:bots', bots);
+  }
+  var routines = load('gb:routines', []);
+  var activeId = load('gb:active', bots.length ? bots[0].id : null);
+  var controller = null;
   var streaming = false;
-  var attachments = [];        // {kind:'image'|'text', name, url?|text?}
-  var modes = { think: false, deep: false, image: false };
+  var attachments = [];
   var serverHasKey = false;
   var stickBottom = true;
+  var workTimer = null;
 
   // -------------------------------------------------------------------------
-  // Tiny helpers
+  // Helpers
   // -------------------------------------------------------------------------
   function $(s, el) { return (el || document).querySelector(s); }
   function esc(s) {
@@ -59,13 +115,6 @@
       .replace(/"/g, '&quot;');
   }
   function uid() { return Date.now().toString(36) + Math.random().toString(36).slice(2, 8); }
-  function saveChats() {
-    try { localStorage.setItem('gb:chats', JSON.stringify(chats)); }
-    catch (e) { toast('Browser storage is full — oldest chats may not be saved'); }
-  }
-  function saveSettings() {
-    try { localStorage.setItem('gb:settings', JSON.stringify(settings)); } catch (e) {}
-  }
   function toast(msg, ms) {
     var t = $('#toast');
     t.textContent = msg;
@@ -73,89 +122,31 @@
     clearTimeout(toast._t);
     toast._t = setTimeout(function () { t.classList.add('hidden'); }, ms || 2600);
   }
-  function currentChat() {
-    for (var i = 0; i < chats.length; i++) if (chats[i].id === currentId) return chats[i];
+  function activeBot() {
+    for (var i = 0; i < bots.length; i++) if (bots[i].id === activeId) return bots[i];
     return null;
   }
-  function nearBottom(el) {
-    return el.scrollHeight - el.scrollTop - el.clientHeight < 90;
-  }
-  function scrollToEnd(force) {
-    var sc = $('#scroll');
-    if (force || stickBottom) sc.scrollTop = sc.scrollHeight;
-  }
+  function saveBots() { persist('gb:bots', bots); }
 
-  // -------------------------------------------------------------------------
-  // Sidebar — chat list
-  // -------------------------------------------------------------------------
-  function renderList() {
-    var q = $('#chat-search').value.trim().toLowerCase();
-    var list = chats.slice().sort(function (a, b) { return b.updatedAt - a.updatedAt; });
-    if (q) list = list.filter(function (c) { return c.title.toLowerCase().indexOf(q) >= 0; });
-
-    var el = $('#chat-list');
-    if (!list.length) {
-      el.innerHTML = '<div class="sb-empty">' + (q ? 'No matching chats' : 'No chats yet') + '</div>';
-      return;
-    }
-    el.innerHTML = list.map(function (c) {
-      return '<button class="chat-item' + (c.id === currentId ? ' active' : '') + '" data-id="' + c.id + '">' +
-        '<span class="ci-title">' + esc(c.title) + '</span>' +
-        '<span class="ci-actions">' +
-          '<button data-act="ren" title="Rename">' + ICONS.pencil + '</button>' +
-          '<button data-act="del" title="Delete">' + ICONS.trash + '</button>' +
-        '</span></button>';
-    }).join('');
+  function timeShort(ts) {
+    var d = new Date(ts), n = new Date();
+    var sameDay = d.toDateString() === n.toDateString();
+    if (sameDay) return d.toTimeString().slice(0, 5);
+    var y = new Date(n.getTime() - 86400e3);
+    if (d.toDateString() === y.toDateString()) return 'Yesterday';
+    return (d.getMonth() + 1) + '/' + d.getDate();
+  }
+  function dayLabel(ts) {
+    var d = new Date(ts), n = new Date();
+    if (d.toDateString() === n.toDateString()) return 'Today';
+    var y = new Date(n.getTime() - 86400e3);
+    if (d.toDateString() === y.toDateString()) return 'Yesterday';
+    return d.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
   }
 
-  $('#chat-list').addEventListener('click', function (e) {
-    var act = e.target.closest('[data-act]');
-    var item = e.target.closest('.chat-item');
-    if (!item) return;
-    var id = item.getAttribute('data-id');
-    if (act) {
-      e.stopPropagation();
-      var chat = null;
-      for (var i = 0; i < chats.length; i++) if (chats[i].id === id) chat = chats[i];
-      if (!chat) return;
-      if (act.getAttribute('data-act') === 'del') {
-        chats.splice(chats.indexOf(chat), 1);
-        if (currentId === id) { currentId = null; renderThread(); }
-        saveChats(); renderList();
-      } else {
-        var name = prompt('Rename chat', chat.title);
-        if (name && name.trim()) { chat.title = name.trim().slice(0, 80); saveChats(); renderList(); }
-      }
-      return;
-    }
-    if (streaming) { toast('Wait for the current reply to finish (or stop it)'); return; }
-    currentId = id;
-    renderThread();
-    renderList();
-    closeMobileSidebar();
-  });
-
-  $('#chat-search').addEventListener('input', renderList);
-
-  // sidebar nav (structural parity with grok.com; only chats are functional here)
-  $('.sb-nav').addEventListener('click', function (e) {
-    var item = e.target.closest('[data-nav]');
-    if (!item) return;
-    var nav = item.getAttribute('data-nav');
-    if (nav === 'chats') {
-      $('#chat-search').focus();
-    } else if (nav === 'projects') {
-      toast('Projects are not part of this open-source clone');
-    } else if (nav === 'files') {
-      toast('Files are not part of this open-source clone — attach files in the composer instead');
-    } else if (nav === 'more') {
-      openSettings();
-    }
-  });
-
-  // -------------------------------------------------------------------------
-  // Thread rendering
-  // -------------------------------------------------------------------------
+  function blobHtml(color, cls) {
+    return '<span class="blob ' + (cls || '') + '" style="background:' + color + '"></span>';
+  }
   function userText(content) {
     if (typeof content === 'string') return content;
     var t = [];
@@ -164,133 +155,7 @@
   }
   function userImages(content) {
     if (!Array.isArray(content)) return [];
-    return content.filter(function (p) { return p.type === 'image_url'; })
-      .map(function (p) { return p.image_url.url; });
-  }
-
-  function aiMessageHtml(msg, idx, isLast) {
-    var html = '<div class="msg-ai-wrap" data-idx="' + idx + '">';
-
-    if (msg.reasoning) {
-      var secs = msg.thinkSecs ? 'Thought for ' + msg.thinkSecs + (msg.thinkSecs === 1 ? ' second' : ' seconds') : 'Thought process';
-      html += '<details class="think"' + (msg.thinkLive ? ' open' : '') + '>' +
-        '<summary>' + ICONS.chevR + '<span class="th-label">' + esc(secs) + '</span></summary>' +
-        '<div class="think-body">' + esc(msg.reasoning) + '</div></details>';
-    }
-
-    if (msg.error) {
-      html += '<div class="msg-error">' + esc(msg.error) + '</div>';
-    } else if (msg.image) {
-      html += '<div class="ai-image"><img src="' + esc(msg.image) + '" alt="generated image">' +
-        (msg.image.match(/^https?:/) ? '<a href="' + esc(msg.image) + '" target="_blank" rel="noopener">Open original ↗</a>' : '') +
-        '</div>';
-      if (msg.content) html += '<div class="ai-content">' + MD.render(msg.content) + '</div>';
-    } else {
-      html += '<div class="ai-content">' + (msg.content ? MD.render(msg.content) : '') + '</div>';
-    }
-
-    if (msg.citations && msg.citations.length) {
-      html += sourcesHtml(msg.citations);
-    }
-
-    if (!msg.pending) {
-      html += '<div class="ai-actions">' +
-        '<button class="act" data-act="copy" title="Copy">' + ICONS.copy + '</button>' +
-        '<button class="act" data-act="up" title="Good response">' + ICONS.up + '</button>' +
-        '<button class="act" data-act="down" title="Bad response">' + ICONS.down + '</button>' +
-        (isLast ? '<button class="act" data-act="regen" title="Regenerate">' + ICONS.refresh + '</button>' : '') +
-        '</div>';
-    }
-    html += '</div>';
-    return html;
-  }
-
-  function sourcesHtml(citations) {
-    var seen = {}, items = [];
-    citations.forEach(function (c, i) {
-      var url = typeof c === 'string' ? c : (c && c.url) || '';
-      if (!url || seen[url]) return;
-      seen[url] = true;
-      var host = url.replace(/^https?:\/\//, '').split('/')[0];
-      items.push('<li><a href="' + esc(url) + '" target="_blank" rel="noopener">' + esc(host) + '</a></li>');
-    });
-    if (!items.length) return '';
-    return '<div class="sources"><div class="src-title">Sources</div><ol>' + items.join('') + '</ol></div>';
-  }
-
-  function renderThread() {
-    var chat = currentChat();
-    var thread = $('#thread');
-    if (!chat || !chat.messages.length) {
-      thread.innerHTML = '<div id="empty-state"><h1>How can I help you today?</h1></div>';
-      return;
-    }
-    var html = chat.messages.map(function (m, i) {
-      if (m.role === 'user') {
-        var imgs = userImages(m.content).map(function (u) {
-          return '<img src="' + esc(u) + '" alt="">';
-        }).join('');
-        return '<div class="msg-user-wrap" style="display:flex;flex-direction:column" data-idx="' + i + '">' +
-          '<div class="msg msg-user">' + esc(userText(m.content)) +
-          (imgs ? '<div class="u-imgs">' + imgs + '</div>' : '') + '</div>' +
-          '<div class="user-actions">' +
-            '<button class="act" data-act="ucopy" title="Copy">' + ICONS.copy + '</button>' +
-            '<button class="act" data-act="uedit" title="Edit &amp; resubmit">' + ICONS.pencil + '</button>' +
-          '</div></div>';
-      }
-      var isLast = i === chat.messages.length - 1 && !streaming;
-      return '<div class="msg">' + aiMessageHtml(m, i, isLast) + '</div>';
-    }).join('');
-    thread.innerHTML = html;
-    scrollToEnd(true);
-  }
-
-  // message-level action delegation (copy / regen / vote / edit)
-  $('#thread').addEventListener('click', function (e) {
-    var btn = e.target.closest('.act, .cb-copy');
-    if (!btn) return;
-    var chat = currentChat();
-    if (!chat) return;
-
-    if (btn.classList.contains('cb-copy')) {
-      var code = MD.getCode(+btn.getAttribute('data-code'));
-      copyText(code || '');
-      flashCopied(btn);
-      return;
-    }
-
-    var wrap = btn.closest('[data-idx]');
-    if (!wrap) return;
-    var idx = +wrap.getAttribute('data-idx');
-    var msg = chat.messages[idx];
-    var act = btn.getAttribute('data-act');
-
-    if (act === 'copy' || act === 'ucopy') {
-      copyText(userTextOrContent(msg));
-      flashCopied(btn);
-    } else if (act === 'up' || act === 'down') {
-      chat.messages.forEach(function (m, i) {
-        if (m.rating === act && i === idx) return;
-      });
-      msg.rating = msg.rating === act ? undefined : act;
-      btn.classList.toggle('on', msg.rating === act);
-    } else if (act === 'regen') {
-      if (streaming) return;
-      // drop trailing assistant messages, then stream again
-      while (chat.messages.length && chat.messages[chat.messages.length - 1].role === 'assistant') {
-        chat.messages.pop();
-      }
-      if (!chat.messages.length) return;
-      saveChats();
-      streamReply(chat);
-    } else if (act === 'uedit') {
-      if (streaming) { toast('Stop the current reply first'); return; }
-      startEditUser(chat, idx, wrap);
-    }
-  });
-
-  function userTextOrContent(msg) {
-    return msg.role === 'user' ? userText(msg.content) : (msg.content || '');
+    return content.filter(function (p) { return p.type === 'image_url'; }).map(function (p) { return p.image_url.url; });
   }
 
   function copyText(text) {
@@ -300,11 +165,8 @@
   }
   function fallbackCopy(text) {
     var ta = document.createElement('textarea');
-    ta.value = text;
-    ta.style.position = 'fixed';
-    ta.style.opacity = '0';
-    document.body.appendChild(ta);
-    ta.select();
+    ta.value = text; ta.style.position = 'fixed'; ta.style.opacity = '0';
+    document.body.appendChild(ta); ta.select();
     try { document.execCommand('copy'); } catch (e) {}
     document.body.removeChild(ta);
   }
@@ -314,43 +176,272 @@
     setTimeout(function () { btn.innerHTML = old; }, 1200);
   }
 
-  function startEditUser(chat, idx, wrap) {
-    var msg = chat.messages[idx];
-    var bubble = wrap.querySelector('.msg-user');
+  // -------------------------------------------------------------------------
+  // Sidebar
+  // -------------------------------------------------------------------------
+  function renderSidebar() {
+    var q = $('#bot-search').value.trim().toLowerCase();
+    var list = bots.slice().sort(function (a, b) {
+      return lastTime(b) - lastTime(a);
+    });
+    if (q) list = list.filter(function (b) { return b.name.toLowerCase().indexOf(q) >= 0; });
+
+    $('#bot-list').innerHTML = list.length ? list.map(function (b) {
+      var last = lastMessage(b);
+      return '<button class="bot-item' + (b.id === activeId ? ' active' : '') + '" data-id="' + b.id + '">' +
+        blobHtml(b.color) +
+        '<span class="bi-body">' +
+          '<span class="bi-name"><span class="bi-nm">' + esc(b.name) + '</span>' +
+          '<span class="bi-time">' + (last ? timeShort(last.time) : '') + '</span></span>' +
+          '<span class="bi-preview">' + (last ? esc(previewOf(last)) : 'New Bot') + '</span>' +
+        '</span>' +
+        '<span class="bi-actions">' +
+          '<button data-act="ren" title="Rename">' + ICONS.pencil + '</button>' +
+          '<button data-act="del" title="Delete">' + ICONS.trash + '</button>' +
+        '</span></button>';
+    }).join('') : '<div class="sb-empty" style="padding:10px 12px;font-size:12.5px;color:var(--text-3)">No Bots found</div>';
+
+    var freqs = ['Daily', 'Every week', 'Every 2 weeks'];
+    var html = '';
+    freqs.forEach(function (f) {
+      var items = routines.filter(function (r) { return r.freq === f; });
+      if (!items.length) return;
+      html += '<div class="sb-label">' + esc(f) + '</div>';
+      items.forEach(function (r) {
+        html += '<div class="routine-item" title="' + esc(r.name) + ' — ' + esc(f) + '">' +
+          '<span class="ri-dot"></span><span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">' + esc(r.name) + '</span>' +
+          '<button class="ri-x" data-rid="' + r.id + '" title="Remove">' + ICONS.x + '</button></div>';
+      });
+    });
+    $('#routine-sections').innerHTML = html;
+  }
+
+  function lastMessage(bot) {
+    for (var i = bot.messages.length - 1; i >= 0; i--) return bot.messages[i];
+    return null;
+  }
+  function lastTime(bot) {
+    var m = lastMessage(bot);
+    return m ? m.time : 0;
+  }
+  function previewOf(msg) {
+    var t = userText(msg.content).replace(/\s+/g, ' ').trim();
+    return t.slice(0, 46);
+  }
+
+  $('#bot-list').addEventListener('click', function (e) {
+    var act = e.target.closest('[data-act]');
+    var item = e.target.closest('.bot-item');
+    if (!item) return;
+    var id = item.getAttribute('data-id');
+    var bot = null;
+    for (var i = 0; i < bots.length; i++) if (bots[i].id === id) bot = bots[i];
+    if (!bot) return;
+    if (act) {
+      e.stopPropagation();
+      if (act.getAttribute('data-act') === 'del') {
+        bots.splice(bots.indexOf(bot), 1);
+        if (activeId === id) { activeId = bots.length ? bots[0].id : null; persist('gb:active', activeId); renderChat(); }
+        saveBots(); renderSidebar();
+      } else {
+        var name = prompt('Rename Bot', bot.name);
+        if (name && name.trim()) { bot.name = name.trim().slice(0, 40); saveBots(); renderSidebar(); renderChat(); }
+      }
+      return;
+    }
+    if (streaming) { toast('Wait for this Bot to finish (or stop it)'); return; }
+    openBot(id);
+    closeMobileSidebar();
+  });
+
+  $('#routine-sections').addEventListener('click', function (e) {
+    var x = e.target.closest('.ri-x');
+    if (!x) return;
+    var rid = x.getAttribute('data-rid');
+    routines = routines.filter(function (r) { return r.id !== rid; });
+    persist('gb:routines', routines);
+    renderSidebar();
+  });
+
+  $('#bot-search').addEventListener('input', renderSidebar);
+  $('#btn-find').addEventListener('click', function () { $('#bot-search').focus(); });
+
+  // -------------------------------------------------------------------------
+  // Chat rendering
+  // -------------------------------------------------------------------------
+  function openBot(id) {
+    activeId = id;
+    persist('gb:active', activeId);
+    renderChat();
+    renderSidebar();
+    input.placeholder = 'Message ' + (activeBot() ? activeBot().name : 'Bot');
+  }
+
+  function renderChat() {
+    var bot = activeBot();
+    var thread = $('#thread');
+
+    // header
+    var head = $('#head-name'), chip = $('#head-status');
+    if (bot) {
+      head.textContent = bot.name;
+      var av = $('#head-avatar');
+      av.style.background = bot.color;
+      $('#sp-caption').textContent = bot.name + "'s screen";
+    }
+    chip.className = 'status-chip ' + (streaming ? 'working' : 'idle');
+    chip.textContent = streaming ? 'Working' : 'Idle';
+
+    if (!bot) {
+      thread.innerHTML = '<div id="thread-empty">' + blobHtml('#8b5cf6') +
+        '<h3>No Bots yet</h3><p>Your team of always-on AI teammates lives here. Create your first Bot and start delegating.</p>' +
+        '<button class="ghost-btn" id="empty-new">New Bot</button></div>';
+      $('#empty-new').addEventListener('click', function () { openBotModal(); });
+      input.placeholder = 'Message…';
+      return;
+    }
+
+    var html = '';
+    var lastDay = '';
+    bot.messages.forEach(function (m, i) {
+      var day = dayLabel(m.time || Date.now());
+      if (day !== lastDay) {
+        lastDay = day;
+        html += '<div class="day-divider">' + day + '</div>';
+      }
+      if (m.role === 'user') {
+        var imgs = userImages(m.content).map(function (u) { return '<img src="' + esc(u) + '" alt="">'; }).join('');
+        html += '<div class="msg-user-wrap" style="display:flex;flex-direction:column" data-idx="' + i + '">' +
+          '<div class="msg msg-user">' + esc(userText(m.content)) + (imgs ? '<div class="u-imgs">' + imgs + '</div>' : '') + '</div>' +
+          '<div class="msg-actions" style="margin:3px 0 0;align-self:flex-end">' +
+            '<button class="act" data-act="ucopy" title="Copy">' + ICONS.copy + '</button>' +
+            '<button class="act" data-act="uedit" title="Edit &amp; resubmit">' + ICONS.pencil + '</button>' +
+          '</div></div>';
+      } else {
+        var isLast = i === bot.messages.length - 1 && !streaming;
+        html += '<div class="msg bot-msg" data-idx="' + i + '">' + blobHtml(bot.color) +
+          '<div class="bot-card">' + (m.error
+            ? '<div class="msg-error">' + esc(m.error) + '</div>'
+            : '<div class="ai-content">' + (m.content ? MD.render(m.content) : '') + '</div>') +
+          '</div></div>' +
+          '<div class="msg-actions">' +
+            '<button class="act" data-act="copy" title="Copy">' + ICONS.copy + '</button>' +
+            (isLast ? '<button class="act" data-act="regen" title="Run again">' + ICONS.refresh + '</button>' : '') +
+          '</div>';
+      }
+    });
+    thread.innerHTML = html;
+    scrollToEnd(true);
+  }
+
+  $('#thread').addEventListener('click', function (e) {
+    var cbBtn = e.target.closest('.cb-copy');
+    if (cbBtn) {
+      copyText(MD.getCode(+cbBtn.getAttribute('data-code')) || '');
+      flashCopied(cbBtn);
+      return;
+    }
+    var btn = e.target.closest('.act');
+    if (!btn) return;
+    var bot = activeBot();
+    if (!bot) return;
+    var wrap = btn.closest('[data-idx]');
+    if (!wrap) return;
+    var idx = +wrap.getAttribute('data-idx');
+    var msg = bot.messages[idx];
+    var act = btn.getAttribute('data-act');
+
+    if (act === 'copy' || act === 'ucopy') {
+      copyText(msg.role === 'user' ? userText(msg.content) : (msg.content || ''));
+      flashCopied(btn);
+    } else if (act === 'regen') {
+      if (streaming) return;
+      while (bot.messages.length && bot.messages[bot.messages.length - 1].role === 'assistant') bot.messages.pop();
+      if (!bot.messages.length) return;
+      saveBots();
+      streamReply(bot);
+    } else if (act === 'uedit') {
+      if (streaming) { toast('Stop the Bot first'); return; }
+      startEditUser(bot, idx, wrap);
+    }
+  });
+
+  function startEditUser(bot, idx, wrap) {
+    var msg = bot.messages[idx];
     var original = userText(msg.content);
-    bubble.outerHTML = '<div class="msg msg-user edit-box"><textarea>' + esc(original) + '</textarea>' +
-      '<div class="edit-actions"><button class="btn ghost" data-ea="cancel">Cancel</button>' +
-      '<button class="btn solid" data-ea="save">Save &amp; submit</button></div></div>';
-    var box = wrap.querySelector('.edit-box textarea');
+    var bubble = wrap.querySelector('.msg-user');
+    bubble.outerHTML = '<div class="msg msg-user" style="width:100%;max-width:100%"><textarea style="width:100%;min-height:60px;background:transparent;border:none;outline:none;color:inherit;font:inherit;resize:vertical">' +
+      esc(original) + '</textarea></div>';
+    var box = wrap.querySelector('textarea');
     box.focus();
     box.style.height = box.scrollHeight + 'px';
-
-    wrap.addEventListener('click', function stop(e) {
-      var b = e.target.closest('[data-ea]');
-      if (!b) return;
-      wrap.removeEventListener('click', stop);
-      if (b.getAttribute('data-ea') === 'cancel') {
-        renderThread();
-        return;
-      }
+    function onKey(e) {
+      if (e.key === 'Escape') { renderChat(); return; }
+      if (e.key !== 'Enter' || e.shiftKey) return;
+      e.preventDefault();
       var val = box.value.trim();
       if (!val) return;
-      chat.messages[idx].content = val;
-      chat.messages = chat.messages.slice(0, idx + 1);
-      saveChats();
-      renderThread();
-      streamReply(chat);
-    });
+      bot.messages[idx].content = val;
+      bot.messages = bot.messages.slice(0, idx + 1);
+      saveBots();
+      renderChat();
+      streamReply(bot);
+    }
+    box.addEventListener('keydown', onKey);
   }
+
+  // -------------------------------------------------------------------------
+  // Screen panel (simulated cloud computer)
+  // -------------------------------------------------------------------------
+  function logLine(text, ok) {
+    var log = $('#sp-log');
+    if (!log) return;
+    var empty = log.querySelector('.sp-empty');
+    if (empty) empty.remove();
+    var t = new Date().toTimeString().slice(0, 5);
+    var div = document.createElement('div');
+    div.innerHTML = '<span class="l-time">' + t + '</span><span class="' + (ok ? 'l-ok' : '') + '">' + esc(text) + '</span>';
+    log.appendChild(div);
+    while (log.children.length > 40) log.removeChild(log.firstChild);
+    log.scrollTop = log.scrollHeight;
+  }
+  function resetScreenLog() {
+    $('#sp-log').innerHTML = '<div class="sp-empty">Live view of this Bot\'s computer.<br>(Simulated in this clone — no real cloud machine.)</div>';
+  }
+  function setWorking(on) {
+    var chip = $('#head-status');
+    chip.className = 'status-chip ' + (on ? 'working' : 'idle');
+    chip.textContent = on ? 'Working' : 'Idle';
+    var ctl = $('#sp-control');
+    ctl.textContent = on ? 'Working' : "You're in control";
+    ctl.className = 'sp-control' + (on ? ' working' : '');
+  }
+  function startWorkSim(task) {
+    logLine('Picking up: ' + task.slice(0, 44) + (task.length > 44 ? '…' : ''));
+    var i = 0;
+    clearInterval(workTimer);
+    workTimer = setInterval(function () {
+      if (i >= WORK_STEPS.length) { clearInterval(workTimer); return; }
+      logLine(WORK_STEPS[i++]);
+    }, 1300);
+  }
+  function stopWorkSim(done) {
+    clearInterval(workTimer);
+    workTimer = null;
+    if (done) logLine('Done.', true);
+  }
+
+  $('#btn-screen').addEventListener('click', function () {
+    $('#app').classList.toggle('no-screen');
+  });
 
   // -------------------------------------------------------------------------
   // Composer
   // -------------------------------------------------------------------------
   var input = $('#input');
-
   function autoresize() {
     input.style.height = 'auto';
-    input.style.height = Math.min(input.scrollHeight, 220) + 'px';
+    input.style.height = Math.min(input.scrollHeight, 180) + 'px';
   }
   input.addEventListener('input', function () { autoresize(); updateSendState(); });
   input.addEventListener('keydown', function (e) {
@@ -359,11 +450,13 @@
       onSendClicked();
     }
   });
-
   $('#scroll').addEventListener('scroll', function () {
-    stickBottom = nearBottom(this);
+    stickBottom = this.scrollHeight - this.scrollTop - this.clientHeight < 90;
   });
-
+  function scrollToEnd(force) {
+    var sc = $('#scroll');
+    if (force || stickBottom) sc.scrollTop = sc.scrollHeight;
+  }
   function updateSendState() {
     var has = input.value.trim().length > 0 || attachments.length > 0;
     var btn = $('#btn-send');
@@ -372,12 +465,10 @@
     btn.classList.toggle('streaming', streaming);
     btn.title = streaming ? 'Stop' : 'Send';
   }
-
   $('#btn-send').addEventListener('click', function () {
     if (streaming) { if (controller) controller.abort(); return; }
     onSendClicked();
   });
-
   function onSendClicked() {
     var text = input.value.trim();
     if (!text && !attachments.length) return;
@@ -386,25 +477,9 @@
       toast('Add your xAI API key in Settings first (console.x.ai)');
       return;
     }
-    if (modes.image) { sendImage(text); return; }
-    sendChat(text);
+    var bot = activeBot() || createBot('Chief of Staff', 'keeps everything moving', COLORS[0], false);
+    sendChat(bot, text);
   }
-
-  // pills
-  function bindPill(id, key) {
-    $(id).addEventListener('click', function () {
-      modes[key] = !modes[key];
-      this.classList.toggle('on', modes[key]);
-      if (key === 'image' && modes.image) {
-        input.placeholder = 'Create an image…';
-      } else if (key === 'image') {
-        input.placeholder = 'Ask Grok anything…';
-      }
-    });
-  }
-  bindPill('#btn-think', 'think');
-  bindPill('#btn-deep', 'deep');
-  bindPill('#btn-img', 'image');
 
   // attachments
   $('#btn-attach').addEventListener('click', function () { $('#file-input').click(); });
@@ -412,91 +487,68 @@
     var files = Array.prototype.slice.call(this.files || []);
     files.forEach(function (f) {
       if (f.type && f.type.indexOf('image/') === 0) {
-        if (f.size > 4 * 1024 * 1024) { toast('Image too large (max 4 MB): ' + f.name); return; }
+        if (f.size > 4 * 1024 * 1024) { toast('Image too large (max 4 MB)'); return; }
         var r = new FileReader();
-        r.onload = function () {
-          attachments.push({ kind: 'image', name: f.name, url: r.result });
-          renderAttachments();
-        };
+        r.onload = function () { attachments.push({ kind: 'image', name: f.name, url: r.result }); renderAttachments(); };
         r.readAsDataURL(f);
       } else {
-        if (f.size > 200 * 1024) { toast('File too large (max 200 KB): ' + f.name); return; }
+        if (f.size > 200 * 1024) { toast('File too large (max 200 KB)'); return; }
         var r2 = new FileReader();
-        r2.onload = function () {
-          attachments.push({ kind: 'text', name: f.name, text: String(r2.result || '') });
-          renderAttachments();
-        };
+        r2.onload = function () { attachments.push({ kind: 'text', name: f.name, text: String(r2.result || '') }); renderAttachments(); };
         r2.readAsText(f);
       }
     });
     this.value = '';
   });
-
   function renderAttachments() {
-    var el = $('#attachments');
-    el.classList.toggle('hidden', !attachments.length);
-    el.innerHTML = attachments.map(function (a, i) {
-      return '<span class="att-chip">' +
-        (a.kind === 'image' ? '<img src="' + esc(a.url) + '" alt="">' : '') +
-        '<span class="att-name">' + esc(a.name) + '</span>' +
-        '<button data-i="' + i + '" title="Remove">' + ICONS.x + '</button></span>';
+    var row = $('#attachments-row');
+    row.innerHTML = attachments.map(function (a, i) {
+      return '<span class="att-chip" style="display:inline-flex;align-items:center;gap:7px;background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:4px 8px;font-size:12px;color:var(--text-2)">' +
+        esc(a.name) + '<button data-i="' + i + '" style="border:none;background:none;color:var(--text-3);cursor:pointer;display:inline-flex">' + ICONS.x + '</button></span>';
     }).join('');
+    row.querySelectorAll('button[data-i]').forEach(function (b) {
+      b.addEventListener('click', function () {
+        attachments.splice(+this.getAttribute('data-i'), 1);
+        renderAttachments();
+      });
+    });
     updateSendState();
   }
-  $('#attachments').addEventListener('click', function (e) {
-    var b = e.target.closest('button[data-i]');
-    if (!b) return;
-    attachments.splice(+b.getAttribute('data-i'), 1);
-    renderAttachments();
-  });
 
   // -------------------------------------------------------------------------
-  // Chat — build payload & stream
+  // Chat — payload & streaming
   // -------------------------------------------------------------------------
-  function historyForApi(chat) {
-    var msgs = [];
-    if (settings.systemPrompt && settings.systemPrompt.trim()) {
-      msgs.push({ role: 'system', content: settings.systemPrompt.trim() });
-    }
-    chat.messages.forEach(function (m) {
+  function systemPrompt(bot) {
+    return 'You are ' + bot.name + ', one of the user\'s always-on Grok Bots — AI teammates with their ' +
+      'own cloud computer. Your job: ' + (bot.role || 'help the user with whatever they need') + '. ' +
+      'Reply like a concise teammate reporting work: short lines, bullet lists of what was done, clear next steps. ' +
+      'You are running inside a local open-source clone WITHOUT a real cloud computer: if asked to perform real ' +
+      'external work (browsing, email, apps), do not claim it is finished — instead lay out exactly what you would ' +
+      'do, step by step, and produce any drafts/artifacts inline. Keep replies tight.';
+  }
+
+  function historyForApi(bot) {
+    var msgs = [{ role: 'system', content: systemPrompt(bot) }];
+    bot.messages.forEach(function (m) {
       if (m.role === 'user') {
-        if (typeof m.content === 'string' && m.content) msgs.push({ role: 'user', content: m.content });
-        else if (Array.isArray(m.content)) msgs.push({ role: 'user', content: m.content });
-      } else if (!m.error) {
-        var c = m.content || '';
-        if (m.image && !c) c = '(generated an image)';
-        if (c) msgs.push({ role: 'assistant', content: c });
+        if (m.content) msgs.push({ role: 'user', content: m.content });
+      } else if (!m.error && m.content) {
+        msgs.push({ role: 'assistant', content: m.content });
       }
     });
     return msgs;
   }
 
-  function buildPayload(chat) {
-    var model = settings.model || 'grok-4.1';
-    var payload = {
-      model: model,
-      messages: historyForApi(chat),
+  function buildPayload(bot) {
+    var p = {
+      model: settings.model || 'grok-4.1',
+      messages: historyForApi(bot),
       stream: true
     };
     if (settings.temperature !== '' && settings.temperature != null && !isNaN(settings.temperature)) {
-      payload.temperature = Number(settings.temperature);
+      p.temperature = Number(settings.temperature);
     }
-    if (modes.think) {
-      payload.reasoning_effort = 'high';
-      if (/3-mini/.test(model)) payload.include_reasoning = true;
-    }
-    if (modes.deep) {
-      payload.search_parameters = { mode: 'auto', return_citations: true };
-    }
-    return payload;
-  }
-
-  function stripExperimental(p) {
-    var q = JSON.parse(JSON.stringify(p));
-    delete q.reasoning_effort;
-    delete q.include_reasoning;
-    delete q.search_parameters;
-    return q;
+    return p;
   }
 
   function postJson(url, body) {
@@ -509,25 +561,32 @@
     });
   }
 
-  function ensureChat() {
-    var chat = currentChat();
-    if (chat) return chat;
-    chat = { id: uid(), title: 'New chat', messages: [], createdAt: Date.now(), updatedAt: Date.now() };
-    chats.unshift(chat);
-    currentId = chat.id;
-    return chat;
+  function extractError(text) {
+    try {
+      var j = JSON.parse(text);
+      if (j.error && j.error.message) return j.error.message;
+      if (j.error && typeof j.error === 'string') return j.error;
+      if (j.message) return j.message;
+    } catch (e) {}
+    return text && text.slice(0, 300);
   }
 
-  function sendChat(text) {
-    var chat = ensureChat();
+  function createBot(name, role, color, greet) {
+    var bot = {
+      id: uid(), name: name, role: role, color: color || COLORS[bots.length % COLORS.length],
+      messages: greet === false ? [] : [{ role: 'assistant', content: NEW_BOT_GREETING, time: Date.now() }]
+    };
+    bots.push(bot);
+    saveBots();
+    return bot;
+  }
 
+  function sendChat(bot, text) {
     var content = text;
     var textFiles = attachments.filter(function (a) { return a.kind === 'text'; });
     var images = attachments.filter(function (a) { return a.kind === 'image'; });
     if (textFiles.length) {
-      var blocks = textFiles.map(function (a) {
-        return '[Attached file: ' + a.name + ']\n```\n' + a.text + '\n```';
-      });
+      var blocks = textFiles.map(function (a) { return '[Attached file: ' + a.name + ']\n```\n' + a.text + '\n```'; });
       content = (content ? content + '\n\n' : '') + blocks.join('\n\n');
     }
     if (images.length) {
@@ -537,68 +596,43 @@
       content = parts;
     }
 
-    chat.messages.push({ role: 'user', content: content });
-    if (chat.title === 'New chat') {
-      var t = userText(content).trim().split('\n')[0];
-      chat.title = (t || 'New chat').slice(0, 42);
-    }
-    chat.updatedAt = Date.now();
+    bot.messages.push({ role: 'user', content: content, time: Date.now() });
     input.value = '';
     autoresize();
     attachments = [];
     renderAttachments();
-    saveChats();
-    renderThread();
-    renderList();
+    saveBots();
+    renderChat();
+    renderSidebar();
 
-    streamReply(chat);
+    streamReply(bot);
   }
 
-  function streamReply(chat) {
-    var payload = buildPayload(chat);
-    var assistant = { role: 'assistant', content: '', reasoning: '', citations: [], pending: true };
-    chat.messages.push(assistant);
-    chat.updatedAt = Date.now();
+  function streamReply(bot) {
+    var payload = buildPayload(bot);
+    var assistant = { role: 'assistant', content: '', time: Date.now() };
+    bot.messages.push(assistant);
 
-    // remove empty state, append streaming message element
-    var empty = $('#empty-state');
-    if (empty) empty.remove();
+    renderChat();           // removes empty state / shows new day divider
+    var thread = $('#thread');
     var wrap = document.createElement('div');
-    wrap.className = 'msg';
-    wrap.innerHTML = '<div class="msg-ai-wrap"><div class="ai-content"><span class="shimmer-word">' +
-      (modes.deep ? 'Searching' : 'Grok') + '</span></div></div>';
-    $('#thread').appendChild(wrap);
+    wrap.className = 'msg bot-msg';
+    wrap.innerHTML = blobHtml(bot.color) +
+      '<div class="bot-card"><div class="ai-content"><span class="shimmer-word">' + esc(bot.name) + '</span></div></div>';
+    thread.appendChild(wrap);
     scrollToEnd(true);
 
     var contentEl = wrap.querySelector('.ai-content');
-    var started = false;      // got first token (reasoning or content)
-    var contentStarted = false;
-    var thinkT0 = 0;
+    var started = false;
     var rafPending = false;
     streaming = true;
-    updateSendState();
     controller = new AbortController();
+    setWorking(true);
+    updateSendState();
+    startWorkSim(userText(bot.messages[bot.messages.length - 2].content) || 'new task');
 
     function paint() {
       rafPending = false;
-      if (assistant.reasoning && !contentStarted) {
-        // live thinking panel
-        if (!wrap.querySelector('.think')) {
-          contentEl.insertAdjacentHTML('beforebegin',
-            '<details class="think" open><summary>' + ICONS.chevR + '<span class="th-label">Thinking…</span></summary>' +
-            '<div class="think-body"></div></details>');
-        }
-        var body = wrap.querySelector('.think-body');
-        if (body && body.textContent !== assistant.reasoning) body.textContent = assistant.reasoning;
-        var lbl = wrap.querySelector('.th-label');
-        if (lbl) lbl.textContent = 'Thinking… ' + Math.max(1, Math.round((Date.now() - thinkT0) / 1000)) + 's';
-      } else if (assistant.reasoning && contentStarted) {
-        var det = wrap.querySelector('.think');
-        if (det) {
-          det.removeAttribute('open');
-          det.querySelector('.th-label').textContent = 'Thought for ' + assistant.thinkSecs + 's';
-        }
-      }
       contentEl.innerHTML = MD.render(assistant.content);
       contentEl.classList.add('stream-cursor');
       scrollToEnd();
@@ -606,32 +640,39 @@
     function schedulePaint() {
       if (!rafPending) { rafPending = true; requestAnimationFrame(paint); }
     }
-
     function finalize(aborted) {
       streaming = false;
       controller = null;
-      assistant.pending = false;
-      if (aborted) assistant.stopped = true;
-      if (assistant.reasoning && !assistant.thinkSecs) {
-        assistant.thinkSecs = Math.max(1, Math.round((Date.now() - thinkT0) / 1000));
-      }
+      setWorking(false);
+      stopWorkSim(!aborted && !assistant.error);
       contentEl.classList.remove('stream-cursor');
-      chat.updatedAt = Date.now();
-      saveChats();
-      renderThread();   // re-render for actions row
-      renderList();
+      saveBots();
+      renderChat();
+      renderSidebar();
       updateSendState();
     }
 
     async function run() {
-      var resp = await postJson('/api/chat', Object.assign({}, payload));
+      var resp = await fetch('/api/chat', {
+        method: 'POST',
+        headers: Object.assign(
+          { 'Content-Type': 'application/json' },
+          settings.apiKey ? { 'x-api-key': settings.apiKey } : {}
+        ),
+        body: JSON.stringify(Object.assign({ base_url: settings.baseUrl || undefined }, payload)),
+        signal: controller.signal
+      });
       if (!resp.ok) {
         var errText = await resp.text();
         var errMsg = extractError(errText);
-        // some endpoints reject reasoning/search params — retry once without
-        if (resp.status === 400 && (payload.reasoning_effort || payload.include_reasoning || payload.search_parameters)) {
-          payload = stripExperimental(payload);
-          resp = await postJson('/api/chat', Object.assign({}, payload));
+        if (resp.status === 400 && payload.reasoning_effort) {
+          payload = { model: payload.model, messages: payload.messages, stream: true };
+          resp = await fetch('/api/chat', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(Object.assign({ base_url: settings.baseUrl || undefined }, payload)),
+            signal: controller.signal
+          });
           if (!resp.ok) { errText = await resp.text(); errMsg = extractError(errText); }
         }
         if (!resp.ok) {
@@ -658,24 +699,9 @@
           if (data === '[DONE]') { buf = ''; break; }
           var ev;
           try { ev = JSON.parse(data); } catch (e) { continue; }
-
           var delta = ev.choices && ev.choices[0] && ev.choices[0].delta || {};
-          if (ev.citations && ev.citations.length) {
-            assistant.citations = assistant.citations.concat(ev.citations);
-          }
-          if (delta.reasoning_content) {
-            if (!started) { started = true; thinkT0 = Date.now(); contentEl.innerHTML = ''; }
-            assistant.reasoning += delta.reasoning_content;
-            schedulePaint();
-          }
           if (delta.content) {
             if (!started) { started = true; contentEl.innerHTML = ''; }
-            if (!contentStarted) {
-              contentStarted = true;
-              if (assistant.reasoning) {
-                assistant.thinkSecs = Math.max(1, Math.round((Date.now() - thinkT0) / 1000));
-              }
-            }
             assistant.content += delta.content;
             schedulePaint();
           }
@@ -685,163 +711,102 @@
     }
 
     run().catch(function (err) {
-      if (controller && controller.signal.aborted) {
-        finalize(true);
-      } else {
+      if (controller && controller.signal.aborted) finalize(true);
+      else {
         assistant.error = 'Network error: ' + (err && err.message || err);
         finalize(false);
       }
     });
   }
 
-  function extractError(text) {
-    try {
-      var j = JSON.parse(text);
-      if (j.error && j.error.message) return j.error.message;
-      if (j.error && typeof j.error === 'string') return j.error;
-      if (j.message) return j.message;
-    } catch (e) {}
-    return text && text.slice(0, 300);
-  }
-
   // -------------------------------------------------------------------------
-  // Image generation
+  // Modals — onboarding / new Bot / routine / settings
   // -------------------------------------------------------------------------
-  function sendImage(prompt) {
-    var chat = ensureChat();
-    chat.messages.push({ role: 'user', content: prompt });
-    if (chat.title === 'New chat') chat.title = ('🖼 ' + prompt).slice(0, 42);
-    input.value = '';
-    autoresize();
-    saveChats();
-    renderThread();
-    renderList();
-
-    var assistant = { role: 'assistant', content: '', image: '', pending: true };
-    chat.messages.push(assistant);
-    var empty = $('#empty-state');
-    if (empty) empty.remove();
-    var wrap = document.createElement('div');
-    wrap.className = 'msg';
-    wrap.innerHTML = '<div class="msg-ai-wrap"><div class="ai-content"><span class="shimmer-word">Creating image…</span></div></div>';
-    $('#thread').appendChild(wrap);
-    scrollToEnd(true);
-    streaming = true;
-    updateSendState();
-
-    postJson('/api/image', { model: 'grok-2-image', prompt: prompt, n: 1 })
-      .then(function (r) { return r.text().then(function (t) { return { ok: r.ok, text: t }; }); })
-      .then(function (res) {
-        if (!res.ok) {
-          assistant.error = extractError(res.text) || ('Image request failed');
-        } else {
-          var j = {};
-          try { j = JSON.parse(res.text); } catch (e) {}
-          var d = j.data && j.data[0] || {};
-          if (d.url) assistant.image = d.url;
-          else if (d.b64_json) assistant.image = 'data:image/jpeg;base64,' + d.b64_json;
-          else assistant.error = 'No image in response — does this endpoint support image generation?';
-        }
-        assistant.pending = false;
-        streaming = false;
-        chat.updatedAt = Date.now();
-        saveChats();
-        renderThread();
-        renderList();
-        updateSendState();
-      })
-      .catch(function (err) {
-        assistant.error = 'Network error: ' + (err && err.message || err);
-        assistant.pending = false;
-        streaming = false;
-        saveChats();
-        renderThread();
-        updateSendState();
-      });
+  function openBotModal(prefill) {
+    $('#botmodal-title').textContent = prefill ? 'Create Primary Bot' : 'New Bot';
+    $('#nb-name').value = prefill || '';
+    $('#nb-role').value = '';
+    $('#botmodal').classList.remove('hidden');
+    setTimeout(function () { (prefill ? $('#nb-role') : $('#nb-name')).focus(); }, 50);
   }
-
-  // -------------------------------------------------------------------------
-  // Model menu
-  // -------------------------------------------------------------------------
-  function renderModelMenu() {
-    var menu = $('#model-menu');
-    menu.innerHTML = MODELS.map(function (m) {
-      return '<button class="menu-item' + (m.id === settings.model ? ' selected' : '') + '" data-model="' + m.id + '">' +
-        '<span class="mi-check">' + ICONS.check + '</span>' +
-        '<span class="mi-body"><div class="mi-name">' + esc(m.name) + '</div><div class="mi-desc">' + esc(m.desc) + '</div></span>' +
-        '</button>';
-    }).join('');
-    var name = modelLabel(settings.model);
-    $('#model-name').textContent = name;
-  }
-  function modelLabel(id) {
-    for (var i = 0; i < MODELS.length; i++) if (MODELS[i].id === id) return MODELS[i].name;
-    return id;
-  }
-  $('#model-btn').addEventListener('click', function (e) {
-    e.stopPropagation();
-    $('#model-menu').classList.toggle('hidden');
-  });
-  $('#model-menu').addEventListener('click', function (e) {
-    var item = e.target.closest('[data-model]');
-    if (!item) return;
-    settings.model = item.getAttribute('data-model');
-    saveSettings();
-    renderModelMenu();
-    this.classList.add('hidden');
-  });
-  document.addEventListener('click', function (e) {
-    if (!e.target.closest('.model-select')) $('#model-menu').classList.add('hidden');
+  $('#btn-newbot').addEventListener('click', function () { openBotModal(); });
+  $('#botmodal-close').addEventListener('click', function () { $('#botmodal').classList.add('hidden'); });
+  $('#nb-cancel').addEventListener('click', function () { $('#botmodal').classList.add('hidden'); });
+  $('#nb-save').addEventListener('click', function () {
+    var name = $('#nb-name').value.trim();
+    if (!name) { toast('Give your Bot a name'); return; }
+    var role = $('#nb-role').value.trim();
+    var bot = createBot(name, role || 'general sidekick for whatever comes up', COLORS[bots.length % COLORS.length], true);
+    $('#botmodal').classList.add('hidden');
+    persist('gb:onboarded', true);
+    openBot(bot.id);
+    toast('Bot created — it just said hi');
   });
 
-  // -------------------------------------------------------------------------
-  // Theme
-  // -------------------------------------------------------------------------
-  function applyTheme() {
-    document.documentElement.setAttribute('data-theme', settings.theme);
-    var label = $('.theme-label');
-    if (label) label.textContent = settings.theme === 'dark' ? 'Light mode' : 'Dark mode';
+  // onboarding (first run)
+  if (!load('gb:onboarded', false)) {
+    $('#onboard').classList.remove('hidden');
   }
-  $('#btn-theme').addEventListener('click', function () {
-    settings.theme = settings.theme === 'dark' ? 'light' : 'dark';
-    saveSettings();
-    applyTheme();
+  $('#ob-existing').addEventListener('click', function () {
+    $('#onboard').classList.add('hidden');
+    persist('gb:onboarded', true);
+    if (bots.length) openBot(bots[0].id);
+  });
+  $('#ob-create').addEventListener('click', function () {
+    $('#onboard').classList.add('hidden');
+    persist('gb:onboarded', true);
+    openBotModal('Primary Bot');
   });
 
-  // -------------------------------------------------------------------------
-  // Settings modal
-  // -------------------------------------------------------------------------
+  // routines
+  $('#btn-routine').addEventListener('click', function () {
+    if (!activeBot()) { toast('Open a Bot first'); return; }
+    $('#rt-name').value = '';
+    $('#routinemodal').classList.remove('hidden');
+    setTimeout(function () { $('#rt-name').focus(); }, 50);
+  });
+  $('#routinemodal-close').addEventListener('click', function () { $('#routinemodal').classList.add('hidden'); });
+  $('#rt-cancel').addEventListener('click', function () { $('#routinemodal').classList.add('hidden'); });
+  $('#rt-save').addEventListener('click', function () {
+    var name = $('#rt-name').value.trim();
+    if (!name) { toast('Name the routine'); return; }
+    var freq = $('#rt-freq').value;
+    routines.push({ id: uid(), name: name, freq: freq, botId: activeId });
+    persist('gb:routines', routines);
+    $('#routinemodal').classList.add('hidden');
+    renderSidebar();
+    toast('Routine created — ' + freq.toLowerCase() + ' (simulated)');
+  });
+
+  // settings
   function openSettings() {
     $('#set-key').value = settings.apiKey;
     $('#set-base').value = settings.baseUrl;
-    $('#set-sys').value = settings.systemPrompt;
-    $('#set-temp').value = settings.temperature;
+    $('#set-model').innerHTML = MODELS.map(function (m) {
+      return '<option value="' + m.id + '"' + (m.id === settings.model ? ' selected' : '') + '>' + m.name + '</option>';
+    }).join('');
+    $('#set-temp') && ($('#set-temp').value = settings.temperature);
     $('#test-result').textContent = '';
     $('#modal').classList.remove('hidden');
     setTimeout(function () { $('#set-key').focus(); }, 50);
   }
   function closeSettings() { $('#modal').classList.add('hidden'); }
-
   $('#btn-settings').addEventListener('click', openSettings);
   $('#modal-close').addEventListener('click', closeSettings);
   $('#btn-cancel').addEventListener('click', closeSettings);
   $('#modal').addEventListener('click', function (e) { if (e.target === this) closeSettings(); });
-
   $('#set-key-eye').addEventListener('click', function () {
     var k = $('#set-key');
     k.type = k.type === 'password' ? 'text' : 'password';
   });
-
   $('#btn-save').addEventListener('click', function () {
     settings.apiKey = $('#set-key').value.trim();
     settings.baseUrl = $('#set-base').value.trim();
-    settings.systemPrompt = $('#set-sys').value;
-    settings.temperature = $('#set-temp').value.trim();
-    saveSettings();
+    settings.model = $('#set-model').value;
+    persist('gb:settings', settings);
     closeSettings();
     toast('Settings saved');
   });
-
   $('#btn-test').addEventListener('click', function () {
     var out = $('#test-result');
     out.className = '';
@@ -850,8 +815,7 @@
     var key = $('#set-key').value.trim();
     if (key) headers['x-api-key'] = key;
     fetch('/api/test', {
-      method: 'POST',
-      headers: headers,
+      method: 'POST', headers: headers,
       body: JSON.stringify({ base_url: $('#set-base').value.trim() || undefined })
     })
       .then(function (r) { return r.json(); })
@@ -859,52 +823,52 @@
         if (j.ok) { out.className = 'ok'; out.textContent = '✓ OK — ' + j.count + ' models visible'; }
         else { out.className = 'bad'; out.textContent = '✗ ' + (j.message || 'failed'); }
       })
-      .catch(function (e) {
-        out.className = 'bad';
-        out.textContent = '✗ ' + (e && e.message || e);
-      });
+      .catch(function (e) { out.className = 'bad'; out.textContent = '✗ ' + (e && e.message || e); });
+  });
+
+  // misc sidebar actions
+  $('#btn-connect').addEventListener('click', function () {
+    toast('Connect apps is not part of this open-source clone');
   });
 
   document.addEventListener('keydown', function (e) {
     if (e.key === 'Escape') {
-      closeSettings();
-      $('#model-menu').classList.add('hidden');
+      ['#modal', '#botmodal', '#routinemodal'].forEach(function (s) { $(s).classList.add('hidden'); });
     }
   });
 
   // -------------------------------------------------------------------------
-  // Sidebar open/close (desktop collapse + mobile overlay)
+  // Theme & sidebar
   // -------------------------------------------------------------------------
+  function applyTheme() {
+    document.documentElement.setAttribute('data-theme', settings.theme);
+    var label = $('.theme-label');
+    if (label) label.textContent = settings.theme === 'dark' ? 'Light mode' : 'Dark mode';
+  }
+  $('#btn-theme').addEventListener('click', function () {
+    settings.theme = settings.theme === 'dark' ? 'light' : 'dark';
+    persist('gb:settings', settings);
+    applyTheme();
+  });
   function isMobile() { return window.innerWidth <= 860; }
   function closeMobileSidebar() { $('#app').classList.remove('sb-mobile-open'); }
-  $('#sb-close').addEventListener('click', function () {
-    if (isMobile()) closeMobileSidebar();
-    else $('#app').classList.add('sb-collapsed');
-  });
   $('#sb-open').addEventListener('click', function () {
     if (isMobile()) $('#app').classList.add('sb-mobile-open');
     else $('#app').classList.remove('sb-collapsed');
   });
   $('#scrim').addEventListener('click', closeMobileSidebar);
-  $('#btn-new').addEventListener('click', function () {
-    if (streaming) { toast('Wait for the current reply to finish (or stop it)'); return; }
-    currentId = null;
-    renderThread();
-    renderList();
-    input.focus();
-    closeMobileSidebar();
-  });
 
   // -------------------------------------------------------------------------
   // Boot
   // -------------------------------------------------------------------------
   applyTheme();
-  renderModelMenu();
-  renderList();
+  resetScreenLog();
+  renderSidebar();
+  if (activeId && activeBot()) openBot(activeId); else renderChat();
   updateSendState();
+  if (window.innerWidth <= 1100) $('#app').classList.add('no-screen');
   fetch('/api/health')
     .then(function (r) { return r.json(); })
     .then(function (j) { serverHasKey = !!j.hasKey; })
     .catch(function () {});
-  input.focus();
 })();

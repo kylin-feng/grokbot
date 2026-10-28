@@ -1,37 +1,33 @@
 # GrokBot
 
 <p align="center">
-  <img src="docs/screenshot-chat.png" width="800" alt="GrokBot chat screenshot" />
+  <img src="docs/screenshot-chat.png" width="860" alt="GrokBot — a team of AI teammates" />
 </p>
 
-**开源 1:1 复刻 Grok（grok.com）网页版。** 流式对话、Think 深度思考、DeepSearch 联网搜索、图像生成、多会话管理、暗色/亮色双主题 —— 约 2000 行代码，Express + 原生 JS，零构建步骤。
+**开源复刻 xAI [Grok Bot](https://x.ai/bot) —— 一队"永远在线的 AI 同事"。** 你像给真人同事发消息一样给 Bot 派活；每个 Bot 有自己的角色人设、自己的消息线程，右侧面板实时展示它"云电脑"上的工作活动。Express + 原生 JS，零构建，自带密钥（BYOK）。
 
-**Open-source 1:1 Grok (grok.com) clone.** Streaming chat, Think mode, DeepSearch, image generation, multi-conversation history, dark/light themes — ~2,000 lines of dependency-light code (Express + vanilla JS, zero build step).
+**Open-source clone of xAI's Grok Bot** — a team of always-on AI teammates. Message Bots like coworkers, each with its own role and thread; a live "Screen" panel shows what the Bot's computer is up to. Express + vanilla JS, zero build step, bring your own API key.
 
-> ⚠️ 仅供学习交流的非官方复刻项目，与 xAI 无任何关联。"Grok" 是 xAI 的商标。请使用自己的 API Key，除调用你所配置的 API 端点外，数据不会离开你的机器。
+> ⚠️ 仅供学习交流的非官方复刻项目，与 xAI 无任何关联。"Grok" / "Grok Bot" 是 xAI 的商标。云电脑为本地模拟演示；请使用自己的 API Key。
 >
-> Unofficial fan project for learning purposes. Not affiliated with xAI. "Grok" is a trademark of xAI.
+> Unofficial fan project for learning purposes. Not affiliated with xAI. The cloud computer is simulated locally.
 
 ## 截图 / Screenshots
 
-| Dark 暗色 | Light 亮色 |
+| First launch 首次启动 | Light mode 亮色 |
 |---|---|
-| ![dark](docs/screenshot-dark.png) | ![light](docs/screenshot-light.png) |
+| ![onboarding](docs/screenshot-onboarding.png) | ![light](docs/screenshot-light.png) |
 
-## 功能 / Features
+## 它能做什么 / What it does
 
-- 🎨 **1:1 grok.com 界面** — 纯黑暗色主题、胶囊输入框、侧边栏、流式 shimmer 动效 / faithful grok.com UI
-- ⚡ **流式输出（SSE）** — 打字机效果，支持停止、重新生成、编辑后重发 / streaming replies with stop · regenerate · edit-and-resubmit
-- 🧠 **Think 模式** — 折叠展示"Thought for Xs"推理过程 / collapsible reasoning block
-- 🌐 **DeepSearch 联网搜索** — 附带来源引用列表 / web search with a sources list
-- 🖼 **Create image 图像生成** — grok-2-image，图片直接渲染在对话里 / inline image generation
-- 👁 **视觉理解** — 可附带图片提问 / attach images alongside text
-- 📎 文本文件附件自动注入上下文 / text-file attachments as context
-- 💬 多会话历史（localStorage），支持搜索 / 重命名 / 删除 / multi-conversation history
-- 🌓 暗色 / 亮色主题切换 / dark & light themes
-- 📦 Markdown 渲染：代码块（带复制按钮）、表格、引用等 / markdown + code blocks with copy buttons
-- 🔑 **BYOK 自带密钥** — 浏览器本地存储或服务端 `.env`，二选一 / bring your own key
-- 🔌 **任意 OpenAI 兼容端点** — 改个 Base URL 即可接入中转或其他厂商 / any OpenAI-compatible endpoint
+- 👥 **预置 Bot 团队**：Chief of Staff、Inbox Manager、Talent Scout、Expense Manager、Account Manager —— 每个都是独立角色人设（驱动真实 LLM 的 system prompt），开场就向你汇报
+- 💬 **同事式消息**：像 iMessage 一样与 Bot 对话，Bot 用要点卡片汇报工作；流式输出、停止、重发、编辑后重新派活
+- 🖥 **Bot 的"云电脑"**：右侧 Screen 面板实时滚动 Bot 的活动日志（Opening browser… / Working the inbox…），状态芯片 Idle ↔ Working，"You're in control"
+- ➕ **新建 Bot**：起名 + 描述职责即创建，新 Bot 会说 *"Hey! What do you want me around for?"*
+- ⏱ **Routines 例行任务**：按 Daily / Every week / Every 2 weeks 分组显示在侧边栏
+- 🧩 **首启引导**：复刻官方 "Introducing Primary Bot" 弹窗（Use an existing Bot / Create Primary Bot）
+- 🔑 **BYOK**：浏览器本地或服务端 `.env` 存 xAI Key；支持任意 OpenAI 兼容端点（中转可用）
+- 🌓 暗色 / 亮色主题；Markdown + 代码块复制；图片 / 文件附件
 
 ## 快速开始 / Quick start
 
@@ -43,10 +39,7 @@ npm start
 # 打开 http://localhost:3000
 ```
 
-到 [console.x.ai](https://console.x.ai) 申请 API Key，然后二选一：
-
-- 在网页 **Settings** 里粘贴（仅存于你的浏览器）/ paste it in the web UI Settings, **or**
-- 复制 `.env.example` → `.env`，填入 `XAI_API_KEY`（密钥保留在服务端）/ set it server-side in `.env`
+到 [console.x.ai](https://console.x.ai) 申请 API Key，在 **Settings**（侧边栏底部齿轮）里填入即可开聊。也可以复制 `.env.example` → `.env` 设置 `XAI_API_KEY`（密钥保留在服务端）。
 
 ## 配置 / Configuration
 
@@ -56,41 +49,50 @@ npm start
 | `XAI_BASE_URL` | `https://api.x.ai/v1` | 任意 OpenAI 兼容 base URL |
 | `PORT` | `3000` | 服务端口 |
 
-网页内设置项：API Key、Base URL、System Prompt、Temperature、模型（grok-4.1 / 4.1-fast / 4 / 4-fast / 3 / 3-mini / 2）。
-
-## 工作原理 / How it works
+## 架构 / How it works
 
 ```
-浏览器 ── POST /api/chat (SSE) ──> Express 代理 ──> api.x.ai/v1/chat/completions
-                                    （注入密钥、透传流）
+┌─ Bots sidebar ─┐ ┌──── Chat thread ────┐ ┌─ Bot's "computer" ─┐
+│ blob avatars   │ │ teammate messages   │ │ activity log (sim) │
+│ routines       │ │ stream via SSE      │ │ Create Routine     │
+└────────────────┘ └─────────┬───────────┘ └────────────────────┘
+                             │ POST /api/chat
+                     Express proxy → api.x.ai/v1/chat/completions
+                     (注入密钥、透传 SSE 流)
 ```
 
-代理层的作用是让密钥不暴露在页面 JS 里；浏览器填写的 Key（BYOK）优先于服务端 `.env`。会话历史仅保存在浏览器 localStorage。
+每个 Bot = 一段角色 system prompt + 独立消息历史（localStorage）。云电脑活动为本地模拟（开源复刻无法提供真实云主机），Bot 的回复由真实 LLM 生成。
 
 ```
 grokbot/
 ├── server.js              # Express 代理 + 静态托管
 ├── public/
-│   ├── index.html         # 页面结构（grok.com 布局）
-│   ├── style.css          # 主题、输入框、消息样式
-│   ├── app.js             # 状态、流式、交互逻辑
+│   ├── index.html         # 三栏消息应用结构
+│   ├── style.css          # 暗色/亮色主题、blob 头像、消息卡片
+│   ├── app.js             # Bot 团队、流式对话、Working 模拟、Routine
 │   └── markdown.js        # 轻量防 XSS Markdown 渲染器
 ├── test/mock-upstream.js  # 本地 mock 上游（无 Key 全链路测试）
 └── docs/                  # 截图
 ```
 
-## 无 Key 本地测试 / Test without a key
+## 无 Key 本地体验 / Try it without a key
 
 ```bash
 node test/mock-upstream.js   # 在 :3999 起一个 OpenAI 兼容 mock
-# GrokBot Settings 里 Base URL 填 http://localhost:3999/v1，Key 随便填
+# Settings 里 Base URL 填 http://localhost:3999/v1，Key 随便填
 ```
+
+## 与官方 Grok Bot 的差异 / Not included
+
+真实的 Grok Bot 给每个用户提供一台持续运行的云电脑（浏览器、登录态、文件系统），Bot 能真正操作外部软件。本复刻聚焦界面与交互形态：云电脑为模拟日志，Bot 不会真的发邮件或浏览网页 —— 其 system prompt 也明确要求它输出"将要执行的步骤"而不是谎称已完成。
+
+The real Grok Bot gives every user a persistent cloud computer (browser, logins, files) that Bots actually operate. This clone reproduces the UI/UX shape only: the computer is a simulated activity log, and Bot prompts forbid claiming real external actions.
 
 ## 路线图 / Roadmap
 
-- [ ] 语音输入（麦克风按钮占位）/ voice input
-- [ ] 会话导出 / 导入 / chat export & import
-- [ ] Edit image 模式 / edit-image mode
+- [ ] 多 Bot 协作线程（"Looping in Comms…" 式交接）
+- [ ] Teach a task（录一次操作 → Routine）
+- [ ] Connect apps 占位接真实 OAuth（需自行接入）
 
 ## 许可 / License
 

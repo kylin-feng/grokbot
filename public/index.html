@@ -3,9 +3,9 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-  <title>GrokBot</title>
-  <meta name="description" content="GrokBot — open-source 1:1 Grok clone. Bring your own xAI API key.">
-  <link rel="icon" href="data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%2032%2032'%3E%3Crect%20width='32'%20height='32'%20rx='8'%20fill='%23000'/%3E%3Ctext%20x='16'%20y='22.5'%20font-family='Arial,sans-serif'%20font-size='19'%20font-weight='700'%20fill='%23fff'%20text-anchor='middle'%3EG%3C/text%3E%3C/svg%3E">
+  <title>Grok Bot</title>
+  <meta name="description" content="GrokBot — open-source clone of xAI's Grok Bot: a team of always-on AI teammates with their own computer. Bring your own xAI API key.">
+  <link rel="icon" href="data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%2032%2032'%3E%3Cpath%20d='M16%203c5.5%200%2010%203.4%2011.4%208.4%201.4%205.2-.8%2011-5.6%2013.7-4.8%202.6-11%202.6-14.5-1.3C4%2020.5%202.7%2014.4%205.4%209.7%208%205%2011.3%203%2016%203z'%20fill='%23000'/%3E%3Cellipse%20cx='12.5'%20cy='15'%20rx='2'%20ry='3.4'%20fill='%23fff'/%3E%3Cellipse%20cx='19.5'%20cy='15'%20rx='2'%20ry='3.4'%20fill='%23fff'/%3E%3C/svg%3E">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -13,141 +13,189 @@
 </head>
 <body>
   <div id="app">
-    <!-- ======================= Sidebar ======================= -->
+    <!-- ===================== Sidebar ===================== -->
     <aside id="sidebar">
       <div class="sb-top">
-        <span class="wordmark" title="GrokBot — unofficial open-source clone">Grok</span>
-        <button id="sb-close" class="icon-btn" title="Close sidebar">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="9" y1="3" x2="9" y2="21"/></svg>
-        </button>
+        <span class="wordmark" id="logo-blob" title="GrokBot — unofficial open-source clone">Grok Bot</span>
+        <div class="sb-top-actions">
+          <button id="btn-find" class="icon-btn" title="Search">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.5" y2="16.5"/></svg>
+          </button>
+          <button id="btn-newbot" class="icon-btn" title="New Bot">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+          </button>
+        </div>
       </div>
 
-      <div class="sb-actions">
-        <button id="btn-new" class="sb-item sb-primary">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
-          <span>New chat</span>
-        </button>
-        <label class="sb-search">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.5" y2="16.5"/></svg>
-          <input id="chat-search" type="text" placeholder="Search chats" autocomplete="off" spellcheck="false">
-        </label>
+      <label class="sb-search" id="search-row">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.5" y2="16.5"/></svg>
+        <input id="bot-search" type="text" placeholder="Search" autocomplete="off" spellcheck="false">
+      </label>
+
+      <div class="sb-scroll">
+        <div class="sb-label">Bots</div>
+        <nav id="bot-list" class="sb-list"></nav>
+        <div id="routine-sections"></div>
       </div>
-
-      <div class="sb-label">Grok</div>
-      <nav class="sb-nav">
-        <button class="sb-item" data-nav="chats">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
-          <span>Chats</span>
-        </button>
-        <button class="sb-item" data-nav="projects">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>
-          <span>Projects</span>
-        </button>
-        <button class="sb-item" data-nav="files">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"/><polyline points="13 2 13 9 20 9"/></svg>
-          <span>Files</span>
-        </button>
-        <button class="sb-item" data-nav="more">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="5" cy="12" r="1"/><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/></svg>
-          <span>More</span>
-        </button>
-      </nav>
-
-      <div class="sb-label">Recents</div>
-      <nav id="chat-list" class="sb-list"></nav>
 
       <div class="sb-bottom">
-        <a class="sb-item sb-upgrade" href="https://grok.com" target="_blank" rel="noopener" title="Grok is a trademark of xAI — this is an unofficial clone">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
-          <span>Get SuperGrok</span>
-        </a>
         <div class="sb-profile">
-          <span class="avatar" title="Local user">F</span>
+          <span class="avatar user-avatar" title="Local user">F</span>
           <span class="sb-name">You</span>
-          <span class="sb-plan">Free</span>
+          <span class="sb-plan">Local</span>
           <button id="btn-settings" class="icon-btn sb-gear" title="Settings">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></svg>
           </button>
         </div>
+        <button id="btn-connect" class="sb-item sb-upgrade" title="Not part of this clone">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
+          <span>Connect apps</span>
+        </button>
+        <button id="btn-theme" class="sb-item">
+          <span class="theme-ic-sun"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2"/><path d="M12 20v2"/><path d="M4.93 4.93l1.41 1.41"/><path d="M17.66 17.66l1.41 1.41"/><path d="M2 12h2"/><path d="M20 12h2"/><path d="M6.34 17.66l-1.41 1.41"/><path d="M19.07 4.93l-1.41 1.41"/></svg></span>
+          <span class="theme-ic-moon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg></span>
+          <span class="theme-label">Light mode</span>
+        </button>
       </div>
     </aside>
     <div id="scrim"></div>
 
-    <!-- ======================= Main ======================= -->
+    <!-- ===================== Main: chat ===================== -->
     <main id="main">
-      <header id="topbar">
-        <button id="sb-open" class="icon-btn" title="Open sidebar">
+      <header id="chat-head">
+        <button id="sb-open" class="icon-btn" title="Sidebar">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="9" y1="3" x2="9" y2="21"/></svg>
         </button>
-        <div class="model-select">
-          <button id="model-btn">
-            <span id="model-name">Grok 4.1</span>
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
-          </button>
-          <div id="model-menu" class="menu hidden"></div>
+        <span id="head-avatar" class="blob blob-mini"></span>
+        <div class="head-title">
+          <span id="head-name">Chief of Staff</span>
+          <span id="head-status" class="status-chip idle">Idle</span>
         </div>
-        <div class="top-right">
-          <button id="btn-theme" class="icon-btn" title="Toggle theme">
-            <span class="theme-ic-sun"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2"/><path d="M12 20v2"/><path d="M4.93 4.93l1.41 1.41"/><path d="M17.66 17.66l1.41 1.41"/><path d="M2 12h2"/><path d="M20 12h2"/><path d="M6.34 17.66l-1.41 1.41"/><path d="M19.07 4.93l-1.41 1.41"/></svg></span>
-            <span class="theme-ic-moon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg></span>
+        <div class="head-actions">
+          <button id="btn-screen" class="ghost-btn" title="Toggle the Bot's computer view">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/></svg>
+            Screen
           </button>
           <a class="icon-btn" href="https://github.com/kylin-feng/grokbot" target="_blank" rel="noopener" title="GitHub">
             <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 .5C5.65.5.5 5.65.5 12c0 5.08 3.29 9.39 7.86 10.91.58.11.79-.25.79-.55v-2.15c-3.2.69-3.87-1.36-3.87-1.36-.52-1.33-1.28-1.68-1.28-1.68-1.04-.71.08-.7.08-.7 1.15.08 1.76 1.18 1.76 1.18 1.03 1.75 2.69 1.25 3.34.95.1-.74.4-1.25.72-1.54-2.55-.29-5.23-1.28-5.23-5.68 0-1.25.45-2.28 1.18-3.08-.12-.29-.51-1.46.11-3.05 0 0 .96-.31 3.15 1.18a10.9 10.9 0 0 1 5.74 0c2.19-1.49 3.15-1.18 3.15-1.18.62 1.59.23 2.76.11 3.05.73.8 1.18 1.83 1.18 3.08 0 4.41-2.69 5.38-5.25 5.66.41.36.77 1.05.77 2.13v3.16c0 .3.21.67.8.55A11.52 11.52 0 0 0 23.5 12C23.5 5.65 18.35.5 12 .5z"/></svg>
           </a>
-          <span class="top-avatar" title="Local user">F</span>
         </div>
       </header>
 
       <div id="scroll">
-        <div id="thread">
-          <div id="empty-state">
-            <h1>How can I help you today?</h1>
-          </div>
-        </div>
+        <div id="thread"></div>
       </div>
 
       <div id="composer-wrap">
+        <div id="attachments-row"></div>
         <div id="composer">
-          <div id="attachments" class="hidden"></div>
-          <textarea id="input" rows="1" placeholder="Ask Grok anything…" autocomplete="off" spellcheck="false"></textarea>
-          <div class="composer-row">
-            <div class="cr-left">
-              <button id="btn-attach" class="icon-btn" title="Attach files or images">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-              </button>
-              <button id="btn-think" class="pill" title="Extended reasoning before answering">
-                <svg viewBox="0 0 24 24" fill="currentColor" stroke="none"><path d="M12 3l1.8 6.2L20 11l-6.2 1.8L12 19l-1.8-6.2L4 11l6.2-1.8L12 3z"/></svg>
-                <span>Think</span>
-                <svg class="pill-caret" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
-              </button>
-              <button id="btn-deep" class="pill" title="Search the web before answering">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><line x1="3" y1="12" x2="21" y2="12"/><path d="M12 3a13.5 13.5 0 0 1 3.6 9 13.5 13.5 0 0 1-3.6 9 13.5 13.5 0 0 1-3.6-9A13.5 13.5 0 0 1 12 3z"/></svg>
-                <span>DeepSearch</span>
-              </button>
-              <button id="btn-img" class="pill" title="Generate an image">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="3"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-4.5-4.5L6 21"/></svg>
-                <span>Create image</span>
-              </button>
-            </div>
-            <div class="cr-right">
-              <button id="btn-mic" class="icon-btn" disabled title="Voice input — coming soon">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2a3 3 0 0 0-3 3v6a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3z"/><path d="M19 10v1a7 7 0 0 1-14 0v-1"/><line x1="12" y1="19" x2="12" y2="22"/></svg>
-              </button>
-              <button id="btn-send" class="send" disabled title="Send">
-                <span class="ic-send"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="19" x2="12" y2="5"/><polyline points="5 12 12 5 19 12"/></svg></span>
-                <span class="ic-stop"><svg viewBox="0 0 24 24" fill="currentColor" stroke="none"><rect x="7" y="7" width="10" height="10" rx="2"/></svg></span>
-              </button>
-            </div>
-          </div>
+          <button id="btn-attach" class="c-icon" title="Attach">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+          </button>
+          <textarea id="input" rows="1" placeholder="Message Chief of Staff" autocomplete="off" spellcheck="false"></textarea>
+          <button id="btn-send" class="send" disabled title="Send">
+            <span class="ic-send"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="19" x2="12" y2="5"/><polyline points="5 12 12 5 19 12"/></svg></span>
+            <span class="ic-stop"><svg viewBox="0 0 24 24" fill="currentColor" stroke="none"><rect x="7" y="7" width="10" height="10" rx="2"/></svg></span>
+          </button>
         </div>
+        <div id="footnote">Bots can make mistakes. Verify important work. — GrokBot is an unofficial open-source clone.</div>
       </div>
     </main>
+
+    <!-- ===================== Right: Bot's computer ===================== -->
+    <aside id="screen-panel">
+      <div class="sp-head">
+        <span class="sp-title">Screen</span>
+        <span class="sp-control" id="sp-control">You're in control</span>
+      </div>
+      <div class="sp-thumb-wrap">
+        <div class="sp-thumb" id="sp-thumb">
+          <div class="sp-desktop">
+            <span class="sp-app">🌐</span><span class="sp-app">📁</span><span class="sp-app">📝</span>
+          </div>
+        </div>
+        <div class="sp-caption" id="sp-caption">Chief of Staff's screen</div>
+      </div>
+      <div class="sp-log-wrap">
+        <div class="sp-log-label">Activity</div>
+        <div id="sp-log" class="sp-log"></div>
+      </div>
+      <div class="sp-routine">
+        <div class="sp-helper">Routines are recurring tasks this Bot runs on a schedule.</div>
+        <button id="btn-routine" class="ghost-btn wide">Create Routine</button>
+      </div>
+    </aside>
   </div>
 
-  <input type="file" id="file-input" multiple hidden
-         accept="image/*,.txt,.md,.json,.csv,.js,.ts,.py,.html,.css,.xml,.yml,.yaml,.log,.c,.cpp,.java,.go,.rs,.sh,.sql">
+  <input type="file" id="file-input" multiple hidden accept="image/*,.txt,.md,.json,.csv,.js,.py,.html,.css,.xml,.yml,.yaml,.log">
 
-  <!-- ======================= Settings modal ======================= -->
+  <!-- ===================== Onboarding modal ===================== -->
+  <div id="onboard" class="modal hidden">
+    <div class="modal-card light-card onboard-card">
+      <div class="blob mascot"><span class="badge">+</span></div>
+      <h2>Introducing Primary Bot</h2>
+      <p class="ob-text">Primary Bot does work proactively. It is your go-to for everyday
+        tasks, unblocks your work, and checks in when it needs your help.</p>
+      <div class="ob-actions">
+        <button id="ob-existing" class="btn gray">Use an existing Bot</button>
+        <button id="ob-create" class="btn black">Create Primary Bot</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===================== New Bot modal ===================== -->
+  <div id="botmodal" class="modal hidden">
+    <div class="modal-card">
+      <div class="modal-head"><h2 id="botmodal-title">New Bot</h2>
+        <button id="botmodal-close" class="icon-btn" title="Close">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        </button>
+      </div>
+      <div class="modal-body">
+        <label class="field"><span>Bot name</span>
+          <input id="nb-name" type="text" placeholder="e.g. Pipeline Scout" autocomplete="off">
+        </label>
+        <label class="field"><span>What should it do? <em>(becomes its persona)</em></span>
+          <textarea id="nb-role" rows="3" placeholder="e.g. Scans the web for DevRel candidates in the Bay Area and keeps a ranked pipeline table."></textarea>
+        </label>
+        <div class="modal-actions">
+          <span class="spacer"></span>
+          <button id="nb-cancel" class="btn ghost">Cancel</button>
+          <button id="nb-save" class="btn solid">Create Bot</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===================== Routine modal ===================== -->
+  <div id="routinemodal" class="modal hidden">
+    <div class="modal-card">
+      <div class="modal-head"><h2>Create Routine</h2>
+        <button id="routinemodal-close" class="icon-btn" title="Close">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        </button>
+      </div>
+      <div class="modal-body">
+        <label class="field"><span>Routine name</span>
+          <input id="rt-name" type="text" placeholder="e.g. Deepen thin posts" autocomplete="off">
+        </label>
+        <label class="field"><span>How often?</span>
+          <select id="rt-freq">
+            <option value="Daily">Daily</option>
+            <option value="Every week">Every week</option>
+            <option value="Every 2 weeks">Every 2 weeks</option>
+          </select>
+        </label>
+        <div class="modal-actions">
+          <span class="spacer"></span>
+          <button id="rt-cancel" class="btn ghost">Cancel</button>
+          <button id="rt-save" class="btn solid">Create</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===================== Settings modal ===================== -->
   <div id="modal" class="modal hidden">
     <div class="modal-card">
       <div class="modal-head">
@@ -171,12 +219,8 @@
           <input id="set-base" type="text" placeholder="https://api.x.ai/v1" autocomplete="off" spellcheck="false">
         </label>
         <label class="field">
-          <span>System prompt <em>(optional)</em></span>
-          <textarea id="set-sys" rows="3" placeholder="You are Grok…"></textarea>
-        </label>
-        <label class="field">
-          <span>Temperature <em>(empty = provider default)</em></span>
-          <input id="set-temp" type="number" min="0" max="2" step="0.1" placeholder="e.g. 0.7">
+          <span>Model</span>
+          <select id="set-model"></select>
         </label>
         <div class="modal-actions">
           <button id="btn-test" class="btn ghost">Test connection</button>
@@ -187,7 +231,7 @@
         </div>
         <p class="modal-note">
           Get an API key at <a href="https://console.x.ai" target="_blank" rel="noopener">console.x.ai</a>.
-          No key is ever sent anywhere except the endpoint above (via your own server).
+          Keys are only ever sent to the endpoint above via your own server.
         </p>
       </div>
     </div>
