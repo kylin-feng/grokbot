@@ -137,6 +137,22 @@
 
   $('#chat-search').addEventListener('input', renderList);
 
+  // sidebar nav (structural parity with grok.com; only chats are functional here)
+  $('.sb-nav').addEventListener('click', function (e) {
+    var item = e.target.closest('[data-nav]');
+    if (!item) return;
+    var nav = item.getAttribute('data-nav');
+    if (nav === 'chats') {
+      $('#chat-search').focus();
+    } else if (nav === 'projects') {
+      toast('Projects are not part of this open-source clone');
+    } else if (nav === 'files') {
+      toast('Files are not part of this open-source clone — attach files in the composer instead');
+    } else if (nav === 'more') {
+      openSettings();
+    }
+  });
+
   // -------------------------------------------------------------------------
   // Thread rendering
   // -------------------------------------------------------------------------
@@ -156,7 +172,7 @@
     var html = '<div class="msg-ai-wrap" data-idx="' + idx + '">';
 
     if (msg.reasoning) {
-      var secs = msg.thinkSecs ? 'Thought for ' + msg.thinkSecs + 's' : 'Thought process';
+      var secs = msg.thinkSecs ? 'Thought for ' + msg.thinkSecs + (msg.thinkSecs === 1 ? ' second' : ' seconds') : 'Thought process';
       html += '<details class="think"' + (msg.thinkLive ? ' open' : '') + '>' +
         '<summary>' + ICONS.chevR + '<span class="th-label">' + esc(secs) + '</span></summary>' +
         '<div class="think-body">' + esc(msg.reasoning) + '</div></details>';
