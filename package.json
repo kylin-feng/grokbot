@@ -1,0 +1,27 @@
+{
+  "name": "grokbot",
+  "version": "1.0.0",
+  "description": "Open-source 1:1 Grok (grok.com) clone — streaming chat, Think, DeepSearch, image generation. BYOK, works with any OpenAI-compatible API.",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node server.js"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "keywords": [
+    "grok",
+    "grok-clone",
+    "xai",
+    "chatbot",
+    "openai-compatible",
+    "streaming",
+    "sse",
+    "byok"
+  ],
+  "license": "MIT",
+  "dependencies": {
+    "express": "^4.21.2"
+  }
+}
