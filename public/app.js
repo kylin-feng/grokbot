@@ -27,31 +27,54 @@
     {
       name: 'Chief of Staff', color: '#8b5cf6',
       role: 'keeps everything moving — plans the day, coordinates the other Bots, unblocks anything stuck',
-      greeting: "Morning. Everything's on track. Want me to line up your day?"
+      greeting: "Morning. Everything's on track. Want me to line up your day?",
+      greetingZh: '早。一切都在轨道上。要我把今天安排一下吗？'
     },
     {
       name: 'Inbox Manager', color: '#f97316',
       role: 'works the inbox to zero, drafts every reply, parks anything that needs your review',
-      greeting: 'inbox at zero — 5 drafts parked for tomorrow. anything urgent?'
+      greeting: 'inbox at zero — 5 drafts parked for tomorrow. anything urgent?',
+      greetingZh: '收件箱已清零——5 封回复草稿等你看。有急事吗？'
     },
     {
       name: 'Talent Scout', color: '#22c55e',
       role: 'sources and ranks candidates, keeps the pipeline table current',
-      greeting: '3 strong candidates surfaced for the DevRel role. want the shortlist?'
+      greeting: '3 strong candidates surfaced for the DevRel role. want the shortlist?',
+      greetingZh: 'DevRel 岗位筛出 3 位强候选人。要短名单吗？'
     },
     {
       name: 'Expense Manager', color: '#3b82f6',
       role: 'reconciles expenses, chases receipts, flags anomalies',
-      greeting: 'Q3 expenses reconciled. 2 receipts need your approval.'
+      greeting: 'Q3 expenses reconciled. 2 receipts need your approval.',
+      greetingZh: 'Q3 报销已对完。有 2 张发票需要你审批。'
     },
     {
       name: 'Account Manager', color: '#ec4899',
       role: 'checks in on every account, watches renewals and risks',
-      greeting: 'checked in on all accounts — 1 renewal at risk. details?'
+      greeting: 'checked in on all accounts — 1 renewal at risk. details?',
+      greetingZh: '所有客户都看了一遍——1 个续约有风险。要细节吗？'
     }
   ];
 
+  var UI_ZH = (function () {
+    try { return ((navigator.language || '') + ',' + (navigator.languages || []).join(',')).toLowerCase().indexOf('zh') >= 0; }
+    catch (e) { return false; }
+  })();
+
+  function presetGreeting(p) { return UI_ZH ? (p.greetingZh || p.greeting) : p.greeting; }
+
   var NEW_BOT_GREETING = 'Hey! What do you want me around for? Anything concrete, or more of a general sidekick?';
+  var NEW_BOT_GREETING_ZH = '嗨！你想让我负责什么？有具体活儿，还是当个万能副手？';
+
+  // The run-time language follows the task: Chinese task → Chinese steps,
+  // check-ins and captions — same as the real product follows your language.
+  function isZh(text) { return /[\u4e00-\u9fff]/.test(String(text || '')); }
+  function threadLang(bot) {
+    for (var i = bot.messages.length - 1; i >= 0; i--) {
+      if (bot.messages[i].role === 'user') return isZh(userText(bot.messages[i].content)) ? 'zh' : 'en';
+    }
+    return 'en';
+  }
 
   // Task-specific activity streams — same kind of task always runs the same
   // sequence on the Bot's computer, like the real product.
@@ -72,19 +95,40 @@
       steps: ['Opening Zendesk…', 'Reading the queue…', 'Answering the easy ones…', 'Escalating the tricky ones…', 'Updating statuses…', 'Wrapping up…'] }
   ];
   var DEFAULT_STEPS = ['Opening browser…', 'Gathering context…', 'Reading the queue…', 'Cross-checking details…', 'Pulling the numbers…', 'Drafting the update…', 'Double-checking results…', 'Wrapping up…'];
+
+  var STEP_PLANS_ZH = [
+    { re: /收件箱|邮件|邮箱|回信|草稿|未读|gmail/i,
+      steps: ['正在打开 Gmail…', '正在读取未读…', '正在分拣队列…', '正在起草回复…', '待你确认的先搁置…', '其余标记完成…', '收尾中…'] },
+    { re: /候选人|招聘|人才|简历|岗位|管线|面试/i,
+      steps: ['正在打开 LinkedIn…', '正在搜索候选人…', '正在阅读档案…', '正在评估匹配度…', '正在更新管线表…', '正在整理短名单…', '收尾中…'] },
+    { re: /报销|发票|对账|预算|开销|账单/i,
+      steps: ['正在打开表格…', '正在拉取流水…', '正在核对发票…', '正在标记异常…', '正在更新台账…', '正在复核总额…', '收尾中…'] },
+    { re: /日程|日历|会议|行程|安排一|排一下/i,
+      steps: ['正在打开日历…', '正在读取本周…', '正在检查冲突…', '正在保护专注时间…', '正在拟议程…', '正在发送邀请…', '收尾中…'] },
+    { re: /调研|研究|查一下|查查|对比|总结|竞品|行情|新闻|价格/i,
+      steps: ['正在打开浏览器…', '正在搜索网络…', '正在阅读来源…', '正在交叉核对…', '正在拉取数据…', '正在写简报…', '收尾中…'] },
+    { re: /发帖|推文|推特|社交|文案|内容/i,
+      steps: ['正在打开 X…', '正在看时间线…', '正在找角度…', '正在写帖子…', '正在存草稿…', '收尾中…'] },
+    { re: /工单|客服|用户反馈|退款|售后|支持/i,
+      steps: ['正在打开 Zendesk…', '正在读取队列…', '简单的先回复…', '棘手的先升级…', '正在更新状态…', '收尾中…'] }
+  ];
+  var DEFAULT_STEPS_ZH = ['正在打开浏览器…', '正在收集上下文…', '正在读取队列…', '正在核对细节…', '正在拉取数据…', '正在整理汇报…', '正在复核结果…', '收尾中…'];
+
   function stepsFor(task) {
-    for (var i = 0; i < STEP_PLANS.length; i++) if (STEP_PLANS[i].re.test(task)) return STEP_PLANS[i].steps.slice();
-    return DEFAULT_STEPS.slice();
+    var zh = isZh(task);
+    var plans = zh ? STEP_PLANS_ZH : STEP_PLANS;
+    for (var i = 0; i < plans.length; i++) if (plans[i].re.test(task)) return plans[i].steps.slice();
+    return (zh ? DEFAULT_STEPS_ZH : DEFAULT_STEPS).slice();
   }
 
   // Apps the Bot may need to be signed into before it can work — mirrors the
   // real product's mid-task "Sign in to X so I can Y" check-ins.
   var APP_HINTS = [
-    { re: /gmail|google mail|\binbox\b|\be-?mails?\b|\bmail\b/i, app: 'Gmail' },
-    { re: /zendesk|\btickets?\b|support queue/i, app: 'Zendesk' },
-    { re: /\bx\.com|twitter|tweet/i, app: 'X' },
-    { re: /sheets?|spreadsheet|excel/i, app: 'Google Sheets' },
-    { re: /calendar|invite|agenda/i, app: 'Google Calendar' },
+    { re: /gmail|google mail|\binbox\b|\be-?mails?\b|\bmail\b|收件箱|邮件|邮箱/i, app: 'Gmail' },
+    { re: /zendesk|\btickets?\b|support queue|工单|客服队列/i, app: 'Zendesk' },
+    { re: /\bx\.com|twitter|tweet|推特/i, app: 'X' },
+    { re: /sheets?|spreadsheet|excel|表格/i, app: 'Google Sheets' },
+    { re: /calendar|invite|agenda|日历|日程/i, app: 'Google Calendar' },
     { re: /slack/i, app: 'Slack' },
     { re: /notion/i, app: 'Notion' },
     { re: /linkedin/i, app: 'LinkedIn' }
@@ -129,12 +173,44 @@
         name: p.name,
         role: p.role,
         color: p.color,
-        messages: [{ role: 'assistant', content: p.greeting, time: Date.now() - (PRESETS.length - i) * 3600e3 }]
+        messages: [{ role: 'assistant', content: presetGreeting(p), time: Date.now() - (PRESETS.length - i) * 3600e3 }]
       };
     });
+    seedCollabDemo(bots);
     persist('gb:bots', bots);
   }
-  var routines = load('gb:routines', []);
+  var routines = load('gb:routines', null);
+  if (!routines) {
+    routines = UI_ZH
+      ? [{ id: 'demo-routine', name: '早间简报', freq: 'Daily', botId: 'preset-0' }]
+      : [{ id: 'demo-routine', name: 'Morning brief', freq: 'Daily', botId: 'preset-0' }];
+    persist('gb:routines', routines);
+  }
+
+  // A ready-made thread in the Chief of Staff conversation that shows a full
+  // multi-bot hand-off: task → owner reports → Asking <teammate>… → teammate
+  // reports with attribution → Handed back to <owner>.
+  function seedCollabDemo(list) {
+    var cos = list[0], im = list[1];
+    var t = Date.now() - 150 * 60e3;   // ~this morning
+    var step = 90e3;
+    var demo = UI_ZH ? [
+      { role: 'user', content: '帮我把今天最重要的事排一下，收件箱也别堆着' },
+      { role: 'assistant', content: '今天重点三件：\n- **10:00** 产品评审，材料我整理好了\n- **14:00** DevRel 候选人面试，简历已发你\n- **16:00** 预留深度工作时间段\n\n收件箱我拉 Inbox Manager 来盯。' },
+      { role: 'caption', content: '正在询问 Inbox Manager…' },
+      { role: 'assistant', by: im.name, color: im.color, content: '收件箱清完了：\n- 未读 **12 → 0**，其中 7 封是订阅邮件，已退订\n- **3 封回复**已起草，等你过目\n- 1 封客户退款邮件标了紧急，需要你拍板' },
+      { role: 'caption', content: '已交回 Chief of Staff。' }
+    ] : [
+      { role: 'user', content: 'line up my top priorities today, and keep the inbox from piling up' },
+      { role: 'assistant', content: 'Three things today:\n- **10:00** product review — deck is ready\n- **14:00** DevRel interview — résumé sent\n- **16:00** deep-work block\n\nPulling in Inbox Manager for the inbox.' },
+      { role: 'caption', content: 'Asking Inbox Manager…' },
+      { role: 'assistant', by: im.name, color: im.color, content: 'Inbox at zero:\n- unread **12 → 0**, unsubscribed from 7 newsletters\n- **3 replies** drafted, parked for your review\n- 1 customer refund flagged urgent — needs your call' },
+      { role: 'caption', content: 'Handed to Chief of Staff.' }
+    ];
+    demo.forEach(function (m, i) {
+      cos.messages.push(Object.assign({ time: t + i * step }, m));
+    });
+  }
   var activeId = load('gb:active', bots.length ? bots[0].id : null);
   var controller = null;
   var streaming = false;
@@ -331,7 +407,7 @@
       head.textContent = bot.name;
       var av = $('#head-avatar');
       av.style.background = bot.color;
-      $('#sp-caption').textContent = bot.name + "'s screen";
+      if (!streaming) $('#sp-caption').textContent = bot.name + "'s screen";
     }
     chip.className = 'status-chip ' + (uiState === 'working' ? 'working' : uiState === 'waiting' ? 'waiting' : 'idle');
     chip.textContent = uiState === 'working' ? 'Working' : uiState === 'waiting' ? 'Waiting' : 'Idle';
@@ -372,10 +448,11 @@
         if (m.error) {
           body = '<div class="msg-error">' + esc(m.error) + '</div>';
         } else if (m.checkin) {
+          var zhCard = !!m.zh;
           body = '<div class="ai-content"><p>' + esc(m.content) + '</p></div>' +
             '<div class="signin-row">' + (m.connected
-              ? '<span class="connected-tag">' + ICONS.check + ' Connected to ' + esc(m.checkin) + ' (demo)</span>'
-              : '<button class="btn solid" data-act="connect">Open sign-in · ' + esc(m.checkin) + '</button>') +
+              ? '<span class="connected-tag">' + ICONS.check + (zhCard ? ' 已连接 ' : ' Connected to ') + esc(m.checkin) + (zhCard ? '（演示）' : ' (demo)') + '</span>'
+              : '<button class="btn solid" data-act="connect">' + (zhCard ? '打开登录 · ' : 'Open sign-in · ') + esc(m.checkin) + '</button>') +
             '</div>';
         } else {
           body = '<div class="ai-content">' + (m.content ? MD.render(m.content) : '') + '</div>';
@@ -526,9 +603,10 @@
     var steps = stepsFor(task);
     var app = appNeeded(task, bot);
     simToken++;
-    var plan = { bot: bot, steps: steps, i: 0, app: app, asked: false, waiting: false, token: simToken };
+    var lang = isZh(task) ? 'zh' : 'en';
+    var plan = { bot: bot, steps: steps, i: 0, app: app, asked: false, waiting: false, token: simToken, lang: lang };
     pending = plan;
-    logLine('Picking up: ' + task.slice(0, 44) + (task.length > 44 ? '…' : ''));
+    logLine((lang === 'zh' ? '接到任务：' : 'Picking up: ') + task.slice(0, 44) + (task.length > 44 ? '…' : ''));
     setThumbBusy(true, (app || 'grok').split(' ').pop());
     clearInterval(workTimer);
     workTimer = setInterval(function () {
@@ -547,11 +625,13 @@
   }
   function pauseForSignin(bot, plan) {
     setWaiting(plan.app);
-    logLine('Needs sign-in: ' + plan.app);
+    logLine((plan.lang === 'zh' ? '需要登录：' : 'Needs sign-in: ') + plan.app);
     removeTyping();
     bot.messages.push({
-      role: 'assistant', checkin: plan.app, color: bot.color,
-      content: 'Sign in to ' + plan.app + " so I can work this. Everything else is ready — connect and I'll take it from there.",
+      role: 'assistant', checkin: plan.app, color: bot.color, zh: plan.lang === 'zh',
+      content: plan.lang === 'zh'
+        ? '需要先登录 ' + plan.app + ' 我才能干这活。其他都准备好了——连接之后我马上继续。'
+        : 'Sign in to ' + plan.app + " so I can work this. Everything else is ready — connect and I'll take it from there.",
       time: Date.now()
     });
     saveBots();
@@ -561,14 +641,15 @@
   }
   function connectApp(bot, msg) {
     if (!msg.checkin) return;
+    var zh = msg.zh;
     msg.connected = true;
     if (!bot.connected) bot.connected = {};
     bot.connected[msg.checkin] = true;
     saveBots();
     renderChat();
     animLast();
-    logLine('Connected to ' + msg.checkin + '.', true);
-    toast(msg.checkin + ' connected');
+    logLine((zh ? '已连接 ' : 'Connected to ') + msg.checkin + (zh ? '。' : '.'), true);
+    toast(msg.checkin + (zh ? ' 已连接' : ' connected'));
     if (pending && pending.bot === bot && pending.waiting) {
       pending.waiting = false;
       setWorking(true);
@@ -587,24 +668,35 @@
   function stopWorkSim(done, onDone) {
     clearInterval(workTimer);
     workTimer = null;
-    if (!done) { if (onDone) onDone(); return; }
-    // the report may finish streaming before the computer view caught up —
-    // fast-forward the remaining steps, then close the session as Done.
     var plan = pending;
     pending = null;
-    var rest = plan ? plan.steps.slice(plan.i) : [];
-    var doneN = 0;
+    if (!done || !plan) { if (onDone) onDone(); return; }
+    // The report may finish streaming before the computer view caught up —
+    // fast-forward the remaining steps, then close the session as Done.
+    // The chain of nested timers is throttled hard when the tab is hidden,
+    // so completion is guaranteed by a single non-nested deadline timer.
+    var token = plan.token;
+    var rest = plan.steps.slice(plan.i);
+    var doneN = 0, finished = false;
+    function finish() {
+      if (finished || simToken !== token) return;
+      finished = true;
+      // render anything the (possibly throttled) chain never got to
+      for (; doneN < rest.length; doneN++) logLine(rest[doneN]);
+      setProgress(1);
+      logLine(plan.lang === 'zh' ? '完成。' : 'Done.', true);
+      setWorking(false);
+      if (onDone) onDone();
+    }
+    setTimeout(finish, rest.length * 300 + 80);
     (function flush() {
-      if (simToken !== plan.token) return;   // a new task took over the screen
+      if (finished || simToken !== token) return;
       if (doneN < rest.length) {
         logLine(rest[doneN++]);
         setProgress((plan.i + doneN) / plan.steps.length);
         setTimeout(flush, 300);
       } else {
-        setProgress(1);
-        logLine('Done.', true);
-        setWorking(false);
-        if (onDone) onDone();
+        finish();
       }
     })();
   }
@@ -738,7 +830,14 @@
     }
   });
   document.addEventListener('keydown', function (e) {
-    if (e.key === 'Escape') loopMenu.classList.add('hidden');
+    if (e.key !== 'Escape') return;
+    loopMenu.classList.add('hidden');
+    // onboarding must be completed; every other modal closes on Escape
+    ['#modal', '#botmodal', '#routinemodal'].forEach(function (s) { $(s).classList.add('hidden'); });
+  });
+  // click the scrim to dismiss (same as the settings modal)
+  ['#botmodal', '#routinemodal'].forEach(function (s) {
+    $(s).addEventListener('click', function (e) { if (e.target === this) this.classList.add('hidden'); });
   });
   function loopIn(other) {
     loopMenu.classList.add('hidden');
@@ -750,11 +849,12 @@
       toast('Ask something first, then loop in a teammate');
       return;
     }
-    bot.messages.push({ role: 'caption', content: 'Asking ' + other.name + '…', time: Date.now() });
+    var zh = threadLang(bot) === 'zh';
+    bot.messages.push({ role: 'caption', content: (zh ? '正在询问 ' : 'Asking ') + other.name + '…', time: Date.now() });
     saveBots();
     renderChat();
     animLast();
-    streamReply(bot, other, 'follow up on the thread above');
+    streamReply(bot, other, zh ? '跟进上面线程里的任务' : 'follow up on the thread above');
   }
 
   // -------------------------------------------------------------------------
@@ -764,6 +864,7 @@
     return 'You are ' + bot.name + ', one of the user\'s always-on Grok Bots — AI teammates with their ' +
       'own cloud computer. Your job: ' + (bot.role || 'help the user with whatever they need') + '. ' +
       'Reply like a concise teammate reporting work: short lines, bullet lists of what was done, clear next steps. ' +
+      'Always reply in the language the user writes in (e.g. Chinese if they write Chinese). ' +
       'You are running inside a local open-source clone WITHOUT a real cloud computer: if asked to perform real ' +
       'external work (browsing, email, apps), do not claim it is finished — instead lay out exactly what you would ' +
       'do, step by step, and produce any drafts/artifacts inline. Keep replies tight.';
@@ -816,7 +917,7 @@
   function createBot(name, role, color, greet) {
     var bot = {
       id: uid(), name: name, role: role, color: color || COLORS[bots.length % COLORS.length],
-      messages: greet === false ? [] : [{ role: 'assistant', content: NEW_BOT_GREETING, time: Date.now() }]
+      messages: greet === false ? [] : [{ role: 'assistant', content: UI_ZH ? NEW_BOT_GREETING_ZH : NEW_BOT_GREETING, time: Date.now() }]
     };
     bots.push(bot);
     saveBots();
@@ -928,7 +1029,8 @@
       if (!aborted && !assistant.error) {
         stopWorkSim(true, function () {   // after the screen catches up:
           if (spk !== bot) {              // hand the thread back to its owner
-            bot.messages.push({ role: 'caption', content: 'Handed to ' + bot.name + '.', time: Date.now() });
+            var zh = threadLang(bot) === 'zh';
+            bot.messages.push({ role: 'caption', content: (zh ? '已交回 ' : 'Handed to ') + bot.name + (zh ? '。' : '.'), time: Date.now() });
             saveBots();
             renderSidebar();
             if (activeId === bot.id) { renderChat(); animLast(); }

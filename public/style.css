@@ -497,7 +497,9 @@ html[data-theme="light"] .sp-thumb { background: linear-gradient(160deg, #e7e7ee
   border-radius: 24px;
   box-shadow: var(--shadow);
   max-height: 88dvh; overflow-y: auto;
+  animation: card-in .22s cubic-bezier(.2,.7,.3,1);
 }
+@keyframes card-in { from { opacity: 0; transform: translateY(14px) scale(.98); } }
 .modal-head { display: flex; align-items: center; justify-content: space-between; padding: 20px 24px 0; }
 .modal-head h2 { margin: 0; font-size: 18px; }
 .modal-body { padding: 12px 24px 24px; }
@@ -717,5 +719,5 @@ html[data-theme="light"] .sp-thumb { background: linear-gradient(160deg, #e7e7ee
 
 @media (prefers-reduced-motion: reduce) {
   .anim-in, .l-in, .typing span, .blob::before, .blob::after, .blob.bob,
-  .sp-lines i, .sp-cursor, .send.ready, #screen-panel { animation: none !important; }
+  .sp-lines i, .sp-cursor, .send.ready, #screen-panel, .modal-card { animation: none !important; }
 }
