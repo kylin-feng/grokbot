@@ -53,11 +53,49 @@
 
   var NEW_BOT_GREETING = 'Hey! What do you want me around for? Anything concrete, or more of a general sidekick?';
 
-  var WORK_STEPS = [
-    'Opening browser…', 'Signing in…', 'Reading the queue…', 'Working the inbox…',
-    'Cross-checking details…', 'Pulling the numbers…', 'Drafting updates…',
-    'Saving files…', 'Double-checking results…', 'Wrapping up…'
+  // Task-specific activity streams — same kind of task always runs the same
+  // sequence on the Bot's computer, like the real product.
+  var STEP_PLANS = [
+    { re: /inbox|e-?mail|gmail|reply|replies|draft|unread/i,
+      steps: ['Opening Gmail…', 'Reading unread…', 'Triaging the queue…', 'Drafting replies…', 'Parking what needs you…', 'Marking the rest done…', 'Wrapping up…'] },
+    { re: /candidate|recruit|hir|talent|sourcing|pipeline|cv|r[eé]sum[eé]/i,
+      steps: ['Opening LinkedIn…', 'Searching candidates…', 'Reading profiles…', 'Scoring fit…', 'Updating the pipeline sheet…', 'Writing the shortlist…', 'Wrapping up…'] },
+    { re: /expense|receipt|reconcil|invoice|budget|spend|card statement/i,
+      steps: ['Opening Sheets…', 'Pulling transactions…', 'Matching receipts…', 'Flagging anomalies…', 'Updating the ledger…', 'Double-checking totals…', 'Wrapping up…'] },
+    { re: /calendar|schedule|meeting|book|agenda|plan my|line up/i,
+      steps: ['Opening Calendar…', 'Reading the week…', 'Checking conflicts…', 'Protecting focus time…', 'Drafting the agenda…', 'Sending invites…', 'Wrapping up…'] },
+    { re: /research|look up|compare|summar|market|competitor|news|pricing|scrape/i,
+      steps: ['Opening browser…', 'Searching the web…', 'Reading sources…', 'Cross-checking claims…', 'Pulling numbers…', 'Writing the brief…', 'Wrapping up…'] },
+    { re: /\bpost\b|tweet|\bx\b|twitter|social|thread|content/i,
+      steps: ['Opening X…', 'Reading the timeline…', 'Finding the angle…', 'Drafting the post…', 'Saving to drafts…', 'Wrapping up…'] },
+    { re: /support|ticket|zendesk|queue|customer|churn|refund/i,
+      steps: ['Opening Zendesk…', 'Reading the queue…', 'Answering the easy ones…', 'Escalating the tricky ones…', 'Updating statuses…', 'Wrapping up…'] }
   ];
+  var DEFAULT_STEPS = ['Opening browser…', 'Gathering context…', 'Reading the queue…', 'Cross-checking details…', 'Pulling the numbers…', 'Drafting the update…', 'Double-checking results…', 'Wrapping up…'];
+  function stepsFor(task) {
+    for (var i = 0; i < STEP_PLANS.length; i++) if (STEP_PLANS[i].re.test(task)) return STEP_PLANS[i].steps.slice();
+    return DEFAULT_STEPS.slice();
+  }
+
+  // Apps the Bot may need to be signed into before it can work — mirrors the
+  // real product's mid-task "Sign in to X so I can Y" check-ins.
+  var APP_HINTS = [
+    { re: /gmail|google mail|\binbox\b|\be-?mails?\b|\bmail\b/i, app: 'Gmail' },
+    { re: /zendesk|\btickets?\b|support queue/i, app: 'Zendesk' },
+    { re: /\bx\.com|twitter|tweet/i, app: 'X' },
+    { re: /sheets?|spreadsheet|excel/i, app: 'Google Sheets' },
+    { re: /calendar|invite|agenda/i, app: 'Google Calendar' },
+    { re: /slack/i, app: 'Slack' },
+    { re: /notion/i, app: 'Notion' },
+    { re: /linkedin/i, app: 'LinkedIn' }
+  ];
+  function appNeeded(task, bot) {
+    for (var i = 0; i < APP_HINTS.length; i++) {
+      var a = APP_HINTS[i];
+      if (a.re.test(task) && !(bot.connected && bot.connected[a.app])) return a.app;
+    }
+    return null;
+  }
 
   var ICONS = {
     copy: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="12" height="12" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>',
@@ -104,6 +142,9 @@
   var serverHasKey = false;
   var stickBottom = true;
   var workTimer = null;
+  var pending = null;   // the task currently running on screen (steps + sign-in state)
+  var uiState = 'idle'; // idle | working | waiting
+  var simToken = 0;     // bumped whenever the screen view is reset for a new task
 
   // -------------------------------------------------------------------------
   // Helpers
@@ -145,7 +186,10 @@
   }
 
   function blobHtml(color, cls) {
-    return '<span class="blob ' + (cls || '') + '" style="background:' + color + '"></span>';
+    // per-instance blink delay so every Bot's eyes blink on its own rhythm
+    var d1 = (Math.random() * 4.5).toFixed(2), d2 = (Math.random() * 4.5).toFixed(2);
+    return '<span class="blob ' + (cls || '') + '" style="background:' + color +
+      ';--bd1:' + d1 + 's;--bd2:' + d2 + 's"></span>';
   }
   function userText(content) {
     if (typeof content === 'string') return content;
@@ -289,8 +333,8 @@
       av.style.background = bot.color;
       $('#sp-caption').textContent = bot.name + "'s screen";
     }
-    chip.className = 'status-chip ' + (streaming ? 'working' : 'idle');
-    chip.textContent = streaming ? 'Working' : 'Idle';
+    chip.className = 'status-chip ' + (uiState === 'working' ? 'working' : uiState === 'waiting' ? 'waiting' : 'idle');
+    chip.textContent = uiState === 'working' ? 'Working' : uiState === 'waiting' ? 'Waiting' : 'Idle';
 
     if (!bot) {
       thread.innerHTML = '<div id="thread-empty">' + blobHtml('#8b5cf6') +
@@ -309,6 +353,10 @@
         lastDay = day;
         html += '<div class="day-divider">' + day + '</div>';
       }
+      if (m.role === 'caption') {
+        html += '<div class="sys-caption">' + esc(m.content) + '</div>';
+        return;
+      }
       if (m.role === 'user') {
         var imgs = userImages(m.content).map(function (u) { return '<img src="' + esc(u) + '" alt="">'; }).join('');
         html += '<div class="msg-user-wrap" style="display:flex;flex-direction:column" data-idx="' + i + '">' +
@@ -319,14 +367,24 @@
           '</div></div>';
       } else {
         var isLast = i === bot.messages.length - 1 && !streaming;
-        html += '<div class="msg bot-msg" data-idx="' + i + '">' + blobHtml(bot.color) +
-          '<div class="bot-card">' + (m.error
-            ? '<div class="msg-error">' + esc(m.error) + '</div>'
-            : '<div class="ai-content">' + (m.content ? MD.render(m.content) : '') + '</div>') +
-          '</div></div>' +
+        var byLine = (m.by && m.by !== bot.name) ? '<div class="bot-by">' + esc(m.by) + '</div>' : '';
+        var body;
+        if (m.error) {
+          body = '<div class="msg-error">' + esc(m.error) + '</div>';
+        } else if (m.checkin) {
+          body = '<div class="ai-content"><p>' + esc(m.content) + '</p></div>' +
+            '<div class="signin-row">' + (m.connected
+              ? '<span class="connected-tag">' + ICONS.check + ' Connected to ' + esc(m.checkin) + ' (demo)</span>'
+              : '<button class="btn solid" data-act="connect">Open sign-in · ' + esc(m.checkin) + '</button>') +
+            '</div>';
+        } else {
+          body = '<div class="ai-content">' + (m.content ? MD.render(m.content) : '') + '</div>';
+        }
+        html += '<div class="msg bot-msg" data-idx="' + i + '">' + blobHtml(m.color || bot.color) +
+          '<div class="bot-card">' + byLine + body + '</div></div>' +
           '<div class="msg-actions">' +
             '<button class="act" data-act="copy" title="Copy">' + ICONS.copy + '</button>' +
-            (isLast ? '<button class="act" data-act="regen" title="Run again">' + ICONS.refresh + '</button>' : '') +
+            (isLast && !m.checkin ? '<button class="act" data-act="regen" title="Run again">' + ICONS.refresh + '</button>' : '') +
           '</div>';
       }
     });
@@ -339,6 +397,16 @@
     if (cbBtn) {
       copyText(MD.getCode(+cbBtn.getAttribute('data-code')) || '');
       flashCopied(cbBtn);
+      return;
+    }
+    var connBtn = e.target.closest('[data-act="connect"]');
+    if (connBtn) {
+      var cBot = activeBot();
+      var cWrap = connBtn.closest('[data-idx]');
+      if (!cBot || !cWrap) return;
+      var cMsg = cBot.messages[+cWrap.getAttribute('data-idx')];
+      if (cMsg && cMsg.checkin && streaming && controller) { toast('The Bot is already working'); return; }
+      if (cMsg && cMsg.checkin) connectApp(cBot, cMsg);
       return;
     }
     var btn = e.target.closest('.act');
@@ -393,42 +461,161 @@
   // -------------------------------------------------------------------------
   // Screen panel (simulated cloud computer)
   // -------------------------------------------------------------------------
+  var lastLineEl = null;
   function logLine(text, ok) {
     var log = $('#sp-log');
     if (!log) return;
     var empty = log.querySelector('.sp-empty');
-    if (empty) empty.remove();
+    if (empty) { empty.remove(); lastLineEl = null; }
     var t = new Date().toTimeString().slice(0, 5);
+    if (lastLineEl && !lastLineEl.classList.contains('l-final')) {
+      var prevMark = lastLineEl.querySelector('.l-mark');
+      if (prevMark) { prevMark.textContent = '✓'; prevMark.classList.add('l-done'); }
+    }
     var div = document.createElement('div');
-    div.innerHTML = '<span class="l-time">' + t + '</span><span class="' + (ok ? 'l-ok' : '') + '">' + esc(text) + '</span>';
+    div.className = 'l-row l-in' + (ok ? ' l-final' : '');
+    div.innerHTML = '<span class="l-time">' + t + '</span><span class="l-mark' + (ok ? ' l-done' : '') + '">' + (ok ? '✓' : '') + '</span><span class="l-text">' + esc(text) + '</span>';
     log.appendChild(div);
+    lastLineEl = div;
     while (log.children.length > 40) log.removeChild(log.firstChild);
     log.scrollTop = log.scrollHeight;
   }
+  function setProgress(pct) {
+    var bar = $('#sp-progress');
+    if (bar) bar.firstElementChild.style.width = Math.round(pct * 100) + '%';
+  }
   function resetScreenLog() {
+    simToken++;
     $('#sp-log').innerHTML = '<div class="sp-empty">Live view of this Bot\'s computer.<br>(Simulated in this clone — no real cloud machine.)</div>';
+    lastLineEl = null;
+    setProgress(0);
+  }
+  function setThumbBusy(on, app) {
+    var thumb = $('#sp-thumb');
+    if (!thumb) return;
+    $('#sp-desktop').classList.toggle('hidden', on);
+    $('#sp-browser').classList.toggle('hidden', !on);
+    thumb.classList.toggle('busy', on);
+    if (on) $('#sp-url-text').textContent = (app || 'grok').toLowerCase().replace(/[^a-z0-9.]+/g, '') + '.com';
   }
   function setWorking(on) {
+    uiState = on ? 'working' : 'idle';
     var chip = $('#head-status');
     chip.className = 'status-chip ' + (on ? 'working' : 'idle');
     chip.textContent = on ? 'Working' : 'Idle';
     var ctl = $('#sp-control');
     ctl.textContent = on ? 'Working' : "You're in control";
     ctl.className = 'sp-control' + (on ? ' working' : '');
+    $('#head-avatar').classList.toggle('bob', on);
+    if (!on) setThumbBusy(false);
   }
-  function startWorkSim(task) {
+  function setWaiting(app) {
+    uiState = 'waiting';
+    var chip = $('#head-status');
+    chip.className = 'status-chip waiting';
+    chip.textContent = 'Waiting';
+    var ctl = $('#sp-control');
+    ctl.textContent = 'Waiting for sign-in';
+    ctl.className = 'sp-control waiting';
+    $('#head-avatar').classList.remove('bob');
+  }
+
+  // A task runs a fixed, task-shaped sequence of steps; if an app is needed
+  // and not connected, the Bot pauses mid-work and asks you to sign in.
+  function startWorkSim(bot, task) {
+    var steps = stepsFor(task);
+    var app = appNeeded(task, bot);
+    simToken++;
+    var plan = { bot: bot, steps: steps, i: 0, app: app, asked: false, waiting: false, token: simToken };
+    pending = plan;
     logLine('Picking up: ' + task.slice(0, 44) + (task.length > 44 ? '…' : ''));
-    var i = 0;
+    setThumbBusy(true, (app || 'grok').split(' ').pop());
     clearInterval(workTimer);
     workTimer = setInterval(function () {
-      if (i >= WORK_STEPS.length) { clearInterval(workTimer); return; }
-      logLine(WORK_STEPS[i++]);
-    }, 1300);
+      if (plan.waiting) return;
+      if (plan.i >= plan.steps.length) { clearInterval(workTimer); workTimer = null; return; }
+      if (plan.app && !plan.asked && plan.i >= 2) {
+        plan.asked = true;
+        plan.waiting = true;
+        clearInterval(workTimer); workTimer = null;
+        pauseForSignin(bot, plan);
+        return;
+      }
+      logLine(plan.steps[plan.i++]);
+      setProgress(plan.i / plan.steps.length);
+    }, 1250);
   }
-  function stopWorkSim(done) {
+  function pauseForSignin(bot, plan) {
+    setWaiting(plan.app);
+    logLine('Needs sign-in: ' + plan.app);
+    removeTyping();
+    bot.messages.push({
+      role: 'assistant', checkin: plan.app, color: bot.color,
+      content: 'Sign in to ' + plan.app + " so I can work this. Everything else is ready — connect and I'll take it from there.",
+      time: Date.now()
+    });
+    saveBots();
+    renderChat();
+    animLast();
+    scrollToEnd(true);
+  }
+  function connectApp(bot, msg) {
+    if (!msg.checkin) return;
+    msg.connected = true;
+    if (!bot.connected) bot.connected = {};
+    bot.connected[msg.checkin] = true;
+    saveBots();
+    renderChat();
+    animLast();
+    logLine('Connected to ' + msg.checkin + '.', true);
+    toast(msg.checkin + ' connected');
+    if (pending && pending.bot === bot && pending.waiting) {
+      pending.waiting = false;
+      setWorking(true);
+      setThumbBusy(true, msg.checkin);
+      clearInterval(workTimer);
+      workTimer = setInterval(function () {
+        var plan = pending;
+        if (!plan || plan.waiting) { clearInterval(workTimer); workTimer = null; return; }
+        if (plan.i >= plan.steps.length) { clearInterval(workTimer); workTimer = null; return; }
+        logLine(plan.steps[plan.i++]);
+        setProgress(plan.i / plan.steps.length);
+      }, 1250);
+      runFetch(bot, bot);
+    }
+  }
+  function stopWorkSim(done, onDone) {
     clearInterval(workTimer);
     workTimer = null;
-    if (done) logLine('Done.', true);
+    if (!done) { if (onDone) onDone(); return; }
+    // the report may finish streaming before the computer view caught up —
+    // fast-forward the remaining steps, then close the session as Done.
+    var plan = pending;
+    pending = null;
+    var rest = plan ? plan.steps.slice(plan.i) : [];
+    var doneN = 0;
+    (function flush() {
+      if (simToken !== plan.token) return;   // a new task took over the screen
+      if (doneN < rest.length) {
+        logLine(rest[doneN++]);
+        setProgress((plan.i + doneN) / plan.steps.length);
+        setTimeout(flush, 300);
+      } else {
+        setProgress(1);
+        logLine('Done.', true);
+        setWorking(false);
+        if (onDone) onDone();
+      }
+    })();
+  }
+  function cancelWaiting() {
+    if (pending) pending.waiting = false;
+    streaming = false;
+    setWorking(false);
+    stopWorkSim(false);
+    removeTyping();
+    updateSendState();
+    toast('Stopped — the sign-in card stays, connect anytime');
   }
 
   $('#btn-screen').addEventListener('click', function () {
@@ -466,7 +653,11 @@
     btn.title = streaming ? 'Stop' : 'Send';
   }
   $('#btn-send').addEventListener('click', function () {
-    if (streaming) { if (controller) controller.abort(); return; }
+    if (streaming) {
+      if (controller) controller.abort();
+      else cancelWaiting();
+      return;
+    }
     onSendClicked();
   });
   function onSendClicked() {
@@ -482,8 +673,7 @@
   }
 
   // attachments
-  $('#btn-attach').addEventListener('click', function () { $('#file-input').click(); });
-  $('#file-input').addEventListener('change', function () {
+  $('#btn-attach').addEventListener('click', function () { $('#file-input').click(); });  $('#file-input').addEventListener('change', function () {
     var files = Array.prototype.slice.call(this.files || []);
     files.forEach(function (f) {
       if (f.type && f.type.indexOf('image/') === 0) {
@@ -516,6 +706,58 @@
   }
 
   // -------------------------------------------------------------------------
+  // Loop in another Bot — teammate answers in the same thread, then hands back
+  // -------------------------------------------------------------------------
+  var loopMenu = $('#loopin-menu');
+  $('#btn-loopin').addEventListener('click', function (e) {
+    e.stopPropagation();
+    if (loopMenu.classList.contains('hidden')) renderLoopinMenu();
+    else loopMenu.classList.add('hidden');
+  });
+  function renderLoopinMenu() {
+    var bot = activeBot();
+    var others = bots.filter(function (b) { return !bot || b.id !== bot.id; });
+    loopMenu.innerHTML = '<div class="li-title">Loop in a Bot</div>' + (others.length
+      ? others.map(function (b) {
+          return '<button class="li-row" data-id="' + b.id + '">' + blobHtml(b.color) +
+            '<span class="li-body"><span class="li-name">' + esc(b.name) + '</span>' +
+            '<span class="li-role">' + esc(b.role || '') + '</span></span></button>';
+        }).join('')
+      : '<div class="li-empty">No other Bots yet</div>');
+    loopMenu.classList.remove('hidden');
+  }
+  loopMenu.addEventListener('click', function (e) {
+    var row = e.target.closest('.li-row');
+    if (!row) return;
+    var other = bots.filter(function (b) { return b.id === row.getAttribute('data-id'); })[0];
+    loopIn(other);
+  });
+  document.addEventListener('click', function (e) {
+    if (!loopMenu.classList.contains('hidden') && !e.target.closest('#loopin-menu') && !e.target.closest('#btn-loopin')) {
+      loopMenu.classList.add('hidden');
+    }
+  });
+  document.addEventListener('keydown', function (e) {
+    if (e.key === 'Escape') loopMenu.classList.add('hidden');
+  });
+  function loopIn(other) {
+    loopMenu.classList.add('hidden');
+    if (!other) return;
+    var bot = activeBot();
+    if (!bot) return;
+    if (streaming) { toast('Wait for the current task to finish'); return; }
+    if (!bot.messages.length || bot.messages[bot.messages.length - 1].role === 'user') {
+      toast('Ask something first, then loop in a teammate');
+      return;
+    }
+    bot.messages.push({ role: 'caption', content: 'Asking ' + other.name + '…', time: Date.now() });
+    saveBots();
+    renderChat();
+    animLast();
+    streamReply(bot, other, 'follow up on the thread above');
+  }
+
+  // -------------------------------------------------------------------------
   // Chat — payload & streaming
   // -------------------------------------------------------------------------
   function systemPrompt(bot) {
@@ -528,21 +770,21 @@
   }
 
   function historyForApi(bot) {
-    var msgs = [{ role: 'system', content: systemPrompt(bot) }];
+    var msgs = [];
     bot.messages.forEach(function (m) {
       if (m.role === 'user') {
         if (m.content) msgs.push({ role: 'user', content: m.content });
-      } else if (!m.error && m.content) {
-        msgs.push({ role: 'assistant', content: m.content });
+      } else if (m.role === 'assistant' && !m.error && m.content) {
+        msgs.push({ role: 'assistant', content: (m.by ? '[' + m.by + '] ' : '') + m.content });
       }
     });
     return msgs;
   }
 
-  function buildPayload(bot) {
+  function buildPayload(spk, threadBot) {
     var p = {
       model: settings.model || 'grok-4.1',
-      messages: historyForApi(bot),
+      messages: [{ role: 'system', content: systemPrompt(spk) }].concat(historyForApi(threadBot)),
       stream: true
     };
     if (settings.temperature !== '' && settings.temperature != null && !isNaN(settings.temperature)) {
@@ -604,21 +846,58 @@
     saveBots();
     renderChat();
     renderSidebar();
+    animLast();
 
     streamReply(bot);
   }
 
-  function streamReply(bot) {
-    var payload = buildPayload(bot);
-    var assistant = { role: 'assistant', content: '', time: Date.now() };
-    bot.messages.push(assistant);
-
-    renderChat();           // removes empty state / shows new day divider
+  function animLast() {
+    var els = $('#thread').querySelectorAll('.msg-user-wrap, .msg.bot-msg, .sys-caption');
+    var el = els[els.length - 1];
+    if (el) el.classList.add('anim-in');
+  }
+  function appendTyping(bot) {
     var thread = $('#thread');
     var wrap = document.createElement('div');
-    wrap.className = 'msg bot-msg';
+    wrap.className = 'msg bot-msg anim-in';
+    wrap.id = 'typing-row';
     wrap.innerHTML = blobHtml(bot.color) +
-      '<div class="bot-card"><div class="ai-content"><span class="shimmer-word">' + esc(bot.name) + '</span></div></div>';
+      '<div class="bot-card"><div class="typing"><span></span><span></span><span></span></div></div>';
+    thread.appendChild(wrap);
+    scrollToEnd(true);
+  }
+  function removeTyping() {
+    var t = $('#typing-row');
+    if (t) t.remove();
+  }
+
+  function streamReply(bot, speaker, taskText) {
+    var spk = speaker || bot;
+    var task = taskText || userText(bot.messages[bot.messages.length - 1].content) || 'new task';
+    $('#app').classList.remove('no-screen');   // the computer view is the show
+    $('#sp-caption').textContent = spk.name + "'s screen";
+    resetScreenLog();
+    streaming = true;
+    controller = null;
+    updateSendState();
+    setWorking(true);
+    appendTyping(spk);
+    startWorkSim(bot, task);
+    if (!pending || !pending.app) runFetch(bot, spk);
+  }
+
+  function runFetch(bot, spk) {
+    var payload = buildPayload(spk, bot);
+    var assistant = { role: 'assistant', content: '', time: Date.now() };
+    if (spk !== bot) { assistant.by = spk.name; assistant.color = spk.color; }
+    bot.messages.push(assistant);
+
+    removeTyping();
+    var thread = $('#thread');
+    var wrap = document.createElement('div');
+    wrap.className = 'msg bot-msg anim-in';
+    wrap.innerHTML = blobHtml(spk.color) +
+      '<div class="bot-card"><div class="ai-content"><div class="typing"><span></span><span></span><span></span></div></div></div>';
     thread.appendChild(wrap);
     scrollToEnd(true);
 
@@ -627,9 +906,7 @@
     var rafPending = false;
     streaming = true;
     controller = new AbortController();
-    setWorking(true);
     updateSendState();
-    startWorkSim(userText(bot.messages[bot.messages.length - 2].content) || 'new task');
 
     function paint() {
       rafPending = false;
@@ -643,13 +920,21 @@
     function finalize(aborted) {
       streaming = false;
       controller = null;
-      setWorking(false);
-      stopWorkSim(!aborted && !assistant.error);
       contentEl.classList.remove('stream-cursor');
       saveBots();
       renderChat();
       renderSidebar();
       updateSendState();
+      if (!aborted && !assistant.error) {
+        stopWorkSim(true, function () {   // after the screen catches up:
+          if (spk !== bot) {              // hand the thread back to its owner
+            bot.messages.push({ role: 'caption', content: 'Handed to ' + bot.name + '.', time: Date.now() });
+            saveBots();
+            renderSidebar();
+            if (activeId === bot.id) { renderChat(); animLast(); }
+          }
+        });
+      } else { setWorking(false); stopWorkSim(false); }
     }
 
     async function run() {

@@ -92,12 +92,16 @@
           <button id="btn-attach" class="c-icon" title="Attach">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
           </button>
+          <button id="btn-loopin" class="c-icon" title="Loop in another Bot">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><line x1="19" y1="8" x2="19" y2="14"/><line x1="22" y1="11" x2="16" y2="11"/></svg>
+          </button>
           <textarea id="input" rows="1" placeholder="Message Chief of Staff" autocomplete="off" spellcheck="false"></textarea>
           <button id="btn-send" class="send" disabled title="Send">
             <span class="ic-send"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="19" x2="12" y2="5"/><polyline points="5 12 12 5 19 12"/></svg></span>
             <span class="ic-stop"><svg viewBox="0 0 24 24" fill="currentColor" stroke="none"><rect x="7" y="7" width="10" height="10" rx="2"/></svg></span>
           </button>
         </div>
+        <div id="loopin-menu" class="hidden"></div>
         <div id="footnote">Bots can make mistakes. Verify important work. — GrokBot is an unofficial open-source clone.</div>
       </div>
     </main>
@@ -110,10 +114,16 @@
       </div>
       <div class="sp-thumb-wrap">
         <div class="sp-thumb" id="sp-thumb">
-          <div class="sp-desktop">
+          <div class="sp-desktop" id="sp-desktop">
             <span class="sp-app">🌐</span><span class="sp-app">📁</span><span class="sp-app">📝</span>
           </div>
+          <div class="sp-browser hidden" id="sp-browser">
+            <div class="sp-url"><span class="sp-dot"></span><span class="sp-dot"></span><span class="sp-dot"></span><span class="sp-url-text" id="sp-url-text">grok.bot</span></div>
+            <div class="sp-lines"><i></i><i></i><i></i></div>
+            <div class="sp-cursor"></div>
+          </div>
         </div>
+        <div class="sp-progress" id="sp-progress"><i></i></div>
         <div class="sp-caption" id="sp-caption">Chief of Staff's screen</div>
       </div>
       <div class="sp-log-wrap">

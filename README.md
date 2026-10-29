@@ -21,8 +21,12 @@
 ## 它能做什么 / What it does
 
 - 👥 **预置 Bot 团队**：Chief of Staff、Inbox Manager、Talent Scout、Expense Manager、Account Manager —— 每个都是独立角色人设（驱动真实 LLM 的 system prompt），开场就向你汇报
+- 🎬 **任务运行时序**（复刻真实产品）：派活后 Bot 走完整生命周期 —— typing 打字点 → 状态变 **Working** → Screen 面板滚任务专属步骤流（带时间戳 + ✓ 对勾 + 进度条 + 迷你浏览器动画）→ 流式汇报卡片 → **Done.** → Idle。同类任务永远跑同样的步骤序列
+- 🔐 **中途 check-in**：任务涉及 Gmail / Zendesk / X / Sheets 等应用且未连接时，Bot 会暂停并在聊天里发 "Sign in to …" 卡片，点击连接后自动续跑；连接状态按 Bot 持久化，下次同类任务直通
+- 🤝 **Loop in 多 Bot 协作**：聊天框旁的拉人按钮把另一个 Bot 拉进同一线程 —— *"Asking Expense Manager…"* 字幕 → 该 Bot 以自己的人设接活汇报（卡片带署名）→ *"Handed to Chief of Staff."* 交回线程主人
 - 💬 **同事式消息**：像 iMessage 一样与 Bot 对话，Bot 用要点卡片汇报工作；流式输出、停止、重发、编辑后重新派活
-- 🖥 **Bot 的"云电脑"**：右侧 Screen 面板实时滚动 Bot 的活动日志（Opening browser… / Working the inbox…），状态芯片 Idle ↔ Working，"You're in control"
+- ✨ **活着的界面**：blob 头像各自节奏眨眼、工作时轻轻浮动；消息入场滑入、发送按钮弹跳、屏幕面板滑入
+- 🖥 **Bot 的"云电脑"**：右侧 Screen 面板实时滚动 Bot 的活动日志（Opening browser… / Working the inbox…），状态芯片 Idle ↔ Working ↔ Waiting，"You're in control"
 - ➕ **新建 Bot**：起名 + 描述职责即创建，新 Bot 会说 *"Hey! What do you want me around for?"*
 - ⏱ **Routines 例行任务**：按 Daily / Every week / Every 2 weeks 分组显示在侧边栏
 - 🧩 **首启引导**：复刻官方 "Introducing Primary Bot" 弹窗（Use an existing Bot / Create Primary Bot）

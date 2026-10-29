@@ -7,17 +7,24 @@ http.createServer((req, res) => {
   }
   if (req.url === '/v1/chat/completions') {
     res.writeHead(200, { 'Content-Type': 'text/event-stream' });
+    const reply = 'On it — here is the sweep:\n\n' +
+      '- **14 unread** triaged, 9 archived\n' +
+      '- **5 replies drafted** and parked for your review\n' +
+      '- 1 escalation to you (refund > $500)\n\n' +
+      '```js\nconsole.log(42)\n```\n\n' +
+      'Inbox at zero. Want the drafts sent as-is?';
+    const words = reply.split(/(?<= )/);   // keep spacing, stream word by word
+    let i = 0;
     const chunks = [
       { choices: [{ delta: { reasoning_content: 'Let me think... ' } }] },
-      { choices: [{ delta: { reasoning_content: 'step by step.' } }] },
-      { choices: [{ delta: { content: 'Hello **world**!\n\n```js\nconsole.log(42)\n```' } }] },
-      { choices: [{ delta: {} }], citations: ['https://example.com/a', 'https://example.org/b'] }
+      { choices: [{ delta: { reasoning_content: 'step by step.' } }] }
     ];
-    let i = 0;
+    words.forEach(w => chunks.push({ choices: [{ delta: { content: w } }] }));
+    chunks.push({ choices: [{ delta: {} }], citations: ['https://example.com/a', 'https://example.org/b'] });
     const t = setInterval(() => {
       if (i < chunks.length) res.write('data: ' + JSON.stringify(chunks[i++]) + '\n\n');
       else { res.write('data: [DONE]\n\n'); clearInterval(t); res.end(); }
-    }, 50);
+    }, 30);
     return;
   }
   if (req.url === '/v1/images/generations') {
